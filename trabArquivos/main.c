@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 int main() {
     FILE *fileBin; 
@@ -45,42 +46,158 @@ int main() {
     fgets(buffer, sizeof(buffer), fileCsv);
 
     while(fgets(buffer, sizeof(buffer), fileCsv) != NULL) {
+        
         // consome os \r e \n para nao dar problema no final da leitura da linha
         buffer[strcspn(buffer, "\r\n")] = '\0';
         // linhaPtr vai funcionar como uma copia de buffer para ler as linhas do .csv
         char *linhaPtr = buffer;
         // o campo funciona para ler cada valor entre as virgulas
-        char *campo;
+        char campo[256];
+        int pos = 0;
+        int i;
+
+
         // coluna 1
-        campo = strsep(&linhaPtr, ",");
+        i = 0;
+        while (buffer[pos] != ',' && buffer[pos] != '\0')
+        {
+            campo[i++] = buffer[pos++];
+        }
+        campo[i] = '\0';
         codEstacao = atoi(campo);
+        pos++;
+
+
         // coluna 2
-        campo = strsep(&linhaPtr, ",");
+        i = 0;
+        while (buffer[pos] != ',' && buffer[pos] != '\0')
+        {
+            campo[i++] = buffer[pos++];
+        }
+        campo[i] = '\0';
         strcpy(nomeEstacao, campo);
-        tamNomeEstacao = strlen(nomeEstacao);
+        tamNomeEstacao = strlen(campo);
+        pos++;
+
+
         // coluna 3
-        campo = strsep(&linhaPtr, ",");
-        codLinha = (campo && *campo) ? atoi(campo) : -1;
+        i = 0;
+        while (buffer[pos] != ',' && buffer[pos] != '\0')
+        {
+            campo[i++] = buffer[pos++];
+        }
+        campo[i] = '\0';
+        if (strlen(campo) > 0) {
+            codLinha = atoi(campo);
+        } else {
+            codLinha = -1;
+        }
+        pos++;
+
+
         // coluna 4
-        campo = strsep(&linhaPtr, ",");
-        if (campo && *campo) {
+        i = 0;
+        while (buffer[pos] != ',' && buffer[pos] != '\0')
+        {
+            campo[i++] = buffer[pos++];
+        }
+        campo[i] = '\0';
+        if (strlen(campo) > 0) {
             strcpy(nomeLinha, campo);
-            tamNomeLinha = strlen(nomeLinha);
+            tamNomeLinha = strlen(campo);
         } else {
             tamNomeLinha = 0;
         }
+        pos++;
+
+
         // coluna 5
-        campo = strsep(&linhaPtr, ",");
-        codProxEstacao = (campo && *campo) ? atoi(campo) : -1;
+        i = 0;
+        while (buffer[pos] != ',' && buffer[pos] != '\0')
+        {
+            campo[i++] = buffer[pos++];
+        }
+        campo[i] = '\0';
+        if (strlen(campo) > 0) {
+            codProxEstacao = atoi(campo);
+        } else {
+            codProxEstacao = -1;
+        }
+        pos++;
+
+
         // coluna 6
-        campo = strsep(&linhaPtr, ",");
-        distProxEstacao = (campo && *campo) ? atoi(campo) : -1;
+        i = 0;
+        while (buffer[pos] != ',' && buffer[pos] != '\0')
+        {
+            campo[i++] = buffer[pos++];
+        }
+        campo[i] = '\0';
+        if (strlen(campo) > 0) {
+            distProxEstacao = atoi(campo);
+        } else {
+            distProxEstacao = -1;
+        }
+        pos++;
+
+
         // coluna 7
-        campo = strsep(&linhaPtr, ",");
-        codLinhaIntegra = (campo && *campo) ? atoi(campo) : -1;
+        i = 0;
+        while (buffer[pos] != ',' && buffer[pos] != '\0')
+        {
+            campo[i++] = buffer[pos++];
+        }
+        campo[i] = '\0';
+        if (strlen(campo) > 0) {
+            codLinhaIntegra = atoi(campo);
+        } else {
+            codLinhaIntegra = -1;
+        }
+        pos++;
+
+
         // coluna 8
-        campo = strsep(&linhaPtr, ",");
-        codEstIntegra = (campo && *campo) ? atoi(campo) : -1;
+        i = 0;
+        while (buffer[pos] != ',' && buffer[pos] != '\0')
+        {
+            campo[i++] = buffer[pos++];
+        }
+        campo[i] = '\0';
+        if (strlen(campo) > 0) {
+            codEstIntegra = atoi(campo);
+        } else {
+            codEstIntegra = -1;
+        }
+        pos++;
+
+        fwrite(&removido, sizeof(char), 1, fileBin);
+        fwrite(&proximo, sizeof(int), 1, fileBin);
+
+        fwrite(&codEstacao, sizeof(int), 1, fileBin);
+        fwrite(&codLinha, sizeof(int), 1, fileBin);
+        fwrite(&codProxEstacao, sizeof(int), 1, fileBin);
+        fwrite(&distProxEstacao, sizeof(int), 1, fileBin);
+        fwrite(&codLinhaIntegra, sizeof(int), 1, fileBin);
+        fwrite(&codEstIntegra, sizeof(int), 1, fileBin);
+
+        fwrite(&tamNomeEstacao, sizeof(int), 1, fileBin);
+        if (tamNomeEstacao > 0) {
+            fwrite(nomeEstacao, sizeof(char), tamNomeEstacao, fileBin);
+        }
+        
+        fwrite(&tamNomeLinha, sizeof(int), 1, fileBin);
+        if (tamNomeLinha > 0) {
+            fwrite(nomeLinha, sizeof(char), tamNomeLinha, fileBin); 
+        }
+        
+        int bytesEscritos = 1 + 4 + (6 * 4) + 4 + tamNomeEstacao + 4 + tamNomeLinha;
+
+        char lixo = '$';
+        for (int i = bytesEscritos; i < 80; i++) {
+            fwrite(&lixo, sizeof(char), 1, fileBin);
+        }
+
+        proxRRN++;
     }
 
 }
