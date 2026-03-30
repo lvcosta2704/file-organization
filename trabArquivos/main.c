@@ -428,7 +428,29 @@ void buscarRegistros(char *binName, int N) {
 }
 }
 
+// removerRegistros (DELETE)
+// recebe: arquivo binario e N = numeros de remocoes
+// retorno: void
+// funcionalidade: remover registros filtrados baseado na abordagem dinamica
+void removerRegistros(char *binName, int N) {
+    ;
+}
 
+// inserirRegistros (INSERT INTO)
+// recebe: arquivo binario e N = numeros de insercoes
+// retorno: void
+// funcionalidade: inserir novos registros baseado na abordagem dinamica
+void inserirRegistros(char *binName, int N) {
+    ;
+}
+
+// atualizarRegistros (UPDATE)
+// recebe: arquivo binario e N = numeros de atualizacoes
+// retorno: void
+// funcionalidade: buscar e mostrar registros filtrados
+void atualizarRegistros(char *binName, int N) {
+    ;
+}
 
 int main () {
     int funcionalidade;
