@@ -474,6 +474,24 @@ int main () {
             buscarRegistros(inputfile, n);
             break;
         }
+        case 4: {
+            int n;
+            scanf("%s %d", inputfile, &n);
+            removerRegistros(inputfile, n);
+            break;
+        }
+        case 5: {
+            int n;
+            scanf("%s %d", inputfile, &n);
+            inserirRegistros(inputfile, n);
+            break;
+        }
+        case 6: {
+            int n;
+            scanf("%s %d", inputfile, &n);
+            atualizarRegistros(inputfile, n);
+            break;
+        }
         default:
             break;
     }
