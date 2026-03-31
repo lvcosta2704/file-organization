@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+// Definicao de macros
+#define MAX_REGISTROS 200
+
 // struct que ajuda a contar os pares de estacoes diferentes
 typedef struct {
     int origem;
@@ -177,8 +180,8 @@ void criarBin(char* csvName, char* binName) {
     }
 
     // Vetores para checar duplicatas e atualizar o cabeçalho corretamente
-    char nomesVistos[150][256];
-    ParEstacao paresVistos[150];
+    char nomesVistos[MAX_REGISTROS][256];
+    ParEstacao paresVistos[MAX_REGISTROS];
 
     // Dados estaticos para o cabeçalho
     Cabecalho cab;
@@ -330,6 +333,7 @@ void criarBin(char* csvName, char* binName) {
     fclose(fileCsv);
     fclose(fileBin);
 
+    BinarioNaTela(binName);
 }
 
 // listarRegistros (SELECT)
@@ -491,7 +495,23 @@ void buscarRegistros(char *binName, int N) {
 // retorno: void
 // funcionalidade: remover registros filtrados baseado na abordagem dinamica
 void removerRegistros(char *binName, int N) {
-    ;
+    // Abre o arquivo no modo leitura e verifica se ocorreu bem
+    FILE *fileBin = fopen(binName, "rb");
+    if (fileBin == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+    
+    // Checa o byte de status do arquivo. Se for zero, para
+    char status;
+    fread(&status, sizeof(char), 1, fileBin);
+    if (status == '0') {
+        printf("Falha no processamento do arquivo.\n");
+        fclose(fileBin);
+        return;
+    }
+    
+
 }
 
 // inserirRegistros (INSERT INTO)
