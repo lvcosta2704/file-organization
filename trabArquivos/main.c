@@ -330,7 +330,6 @@ void criarBin(char* csvName, char* binName) {
 // funcionalidade: buscar e mostrar todos os registros do binario 
 void listarRegistros(char *binName) {
     FILE *fileBin = fopen(binName, "rb");
-
     if (fileBin == NULL) {
         printf("Falha no processamento do arquivo.\n");
         return;
@@ -338,15 +337,13 @@ void listarRegistros(char *binName) {
 
     Cabecalho cab;
 
-    fread(&cab.status, sizeof(char), 1, fileBin);
-    if (cab.status == '0') {
+    // Lê o cabecalho do arquivo e verifica se está consistente
+    lerCabecalho(fileBin, &cab);
+    if(cab.status == '0') {
         printf("Arquivo inconsistente.\n");
         fclose(fileBin);
         return;
     }
-
-    // pula o cabecalho que agora possui 16 bytes, visto que ja lemos 1
-    fseek(fileBin, 16, SEEK_CUR);
 
     int registrosExibidos = 0;
     
@@ -430,19 +427,23 @@ void listarRegistros(char *binName) {
 // retorno: void
 // funcionalidade: buscar e mostrar registros filtrados
 void buscarRegistros(char *binName, int N) {
+    // Abre o arquivo no modo leitura e verifica se ocorreu bem
     FILE *fileBin = fopen(binName, "rb");
     if (fileBin == NULL) {
         printf("Falha no processamento do arquivo.\n");
         return;
     }
+
+    Cabecalho cab;
     
-    char status;
-    fread(&status, sizeof(char), 1, fileBin);
-    if (status == '0') {
-        printf("Falha no processamento do arquivo.\n");
+    // Lê o cabecalho do arquivo e verifica se está consistente
+    lerCabecalho(fileBin, &cab);
+    if(cab.status == '0') {
+        printf("Arquivo inconsistente.\n");
         fclose(fileBin);
         return;
     }
+
 
     Busca buscando; 
 
@@ -490,7 +491,19 @@ void removerRegistros(char *binName, int N) {
         return;
     }
 
+    Cabecalho cab;
+
+    // Lê o cabecalho do arquivo e verifica se está consistente
+    lerCabecalho(fileBin, &cab);
+    if(cab.status == '0') {
+        printf("Arquivo inconsistente.\n");
+        fclose(fileBin);
+        return;
+    }
+
     
+
+    fclose(fileBin);
 }
 
 // inserirRegistros (INSERT INTO)
