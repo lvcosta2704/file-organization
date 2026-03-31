@@ -516,7 +516,6 @@ void atualizarRegistros(char *binName, int N) {
 }
 
 // ------- MÓDULOS -------
-
 Cabecalho iniciarCabecalho() {
     Cabecalho cab;
     cab.status = '0';
@@ -529,6 +528,9 @@ Cabecalho iniciarCabecalho() {
 }
 
 void escreverCabecalho(FILE *fileBin, Cabecalho cab) {
+    fseek(fileBin, 0, SEEK_SET); // Garante que escrevemos no inicio do binario
+    
+    // Escreve no arquivo
     fwrite(&cab.status, sizeof(char), 1, fileBin);
     fwrite(&cab.topo, sizeof(int), 1, fileBin);
     fwrite(&cab.proxRRN, sizeof(int), 1, fileBin);
