@@ -62,6 +62,7 @@ void BinarioNaTela(char *arquivo); // Fornecido
 void ScanQuoteString(char *str); // Fornecido
 Cabecalho iniciarCabecalho();
 void escreverCabecalho(FILE *fileBin, Cabecalho cab);
+void lerCabecalho(FILE *fileBin, Cabecalho *cab);
 
 // -------- FLUXO PRINCIPAL DO PROGRAMA ---------
 int main () {
@@ -314,14 +315,7 @@ void criarBin(char* csvName, char* binName) {
 
     // --- ATUALIZAÇÃO DO CABEÇALHO ---
     cab.status = '1'; // Finalizou, arquivo está consistente
-    fseek(fileBin, 0, SEEK_SET); // Volta pro começo do arquivo
-
-    // Reescreve os dados atualizados
-    fwrite(&cab.status, sizeof(char), 1, fileBin);
-    fwrite(&cab.topo, sizeof(int), 1, fileBin);
-    fwrite(&cab.proxRRN, sizeof(int), 1, fileBin);
-    fwrite(&cab.nroEstacoes, sizeof(int), 1, fileBin);
-    fwrite(&cab.nroParesEstacao, sizeof(int), 1, fileBin);
+    escreverCabecalho(fileBin, cab); // Atualiza o cabecalho
 
     // Fechamento de arquivos obrigatório antes do binarioNaTela
     fclose(fileCsv);
@@ -536,4 +530,15 @@ void escreverCabecalho(FILE *fileBin, Cabecalho cab) {
     fwrite(&cab.proxRRN, sizeof(int), 1, fileBin);
     fwrite(&cab.nroEstacoes, sizeof(int), 1, fileBin);
     fwrite(&cab.nroParesEstacao, sizeof(int), 1, fileBin);
+}
+
+void lerCabecalho(FILE *fileBin, Cabecalho *cab) {
+    fseek(fileBin, 0, SEEK_SET); // Garante que lemos o inicio do binario
+
+    // Lê o cabecalho do arquivo e coloca na struct
+    fread(&cab->status, sizeof(char), 1, fileBin);
+    fread(&cab->topo, sizeof(int), 1, fileBin);
+    fread(&cab->proxRRN, sizeof(int), 1, fileBin);
+    fread(&cab->nroEstacoes, sizeof(int), 1, fileBin);
+    fread(&cab->nroParesEstacao, sizeof(int), 1, fileBin);
 }
