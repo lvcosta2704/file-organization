@@ -61,6 +61,7 @@ void atualizarRegistros(char *binName, int N);
 void BinarioNaTela(char *arquivo); // Fornecido
 void ScanQuoteString(char *str); // Fornecido
 Cabecalho iniciarCabecalho();
+void escreverCabecalho(FILE *fileBin, Cabecalho cab);
 
 // -------- FLUXO PRINCIPAL DO PROGRAMA ---------
 int main () {
@@ -189,11 +190,7 @@ void criarBin(char* csvName, char* binName) {
     Cabecalho cab = iniciarCabecalho();
 
     // Escrevendo o cabeçalho inconsistente inicialmente
-    fwrite(&cab.status, sizeof(char), 1, fileBin);
-    fwrite(&cab.topo, sizeof(int), 1, fileBin);
-    fwrite(&cab.proxRRN, sizeof(int), 1, fileBin);
-    fwrite(&cab.nroEstacoes, sizeof(int), 1, fileBin);
-    fwrite(&cab.nroParesEstacao, sizeof(int), 1, fileBin);
+    escreverCabecalho(fileBin, cab);
 
     // lendo a primeira linha do arquivo csv (cabeçalho) e descartando
     char buffer[1024];
@@ -529,4 +526,12 @@ Cabecalho iniciarCabecalho() {
     cab.nroParesEstacao = 0;
 
     return cab;
+}
+
+void escreverCabecalho(FILE *fileBin, Cabecalho cab) {
+    fwrite(&cab.status, sizeof(char), 1, fileBin);
+    fwrite(&cab.topo, sizeof(int), 1, fileBin);
+    fwrite(&cab.proxRRN, sizeof(int), 1, fileBin);
+    fwrite(&cab.nroEstacoes, sizeof(int), 1, fileBin);
+    fwrite(&cab.nroParesEstacao, sizeof(int), 1, fileBin);
 }
