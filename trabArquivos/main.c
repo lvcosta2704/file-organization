@@ -61,14 +61,15 @@ void atualizarRegistros(char *binName, int N);
 void BinarioNaTela(char *arquivo); // Fornecido
 void ScanQuoteString(char *str); // Fornecido
 Cabecalho iniciarCabecalho();
+Busca resetarFiltro();
 void escreverCabecalho(FILE *fileBin, Cabecalho cab);
 void lerCabecalho(FILE *fileBin, Cabecalho *cab);
 
 // -------- FLUXO PRINCIPAL DO PROGRAMA ---------
 int main () {
     int funcionalidade;
-    char inputfile[256];
-    char outputfile[256];
+    char inputfile[50];
+    char outputfile[50];
 
     if (scanf("%d", &funcionalidade) != 1) return 0;
 
@@ -194,7 +195,7 @@ void criarBin(char* csvName, char* binName) {
     escreverCabecalho(fileBin, cab);
 
     // lendo a primeira linha do arquivo csv (cabeçalho) e descartando
-    char buffer[1024];
+    char buffer[512];
     fgets(buffer, sizeof(buffer), fileCsv);
 
     // while para capturar os campos do arquivo csv
@@ -445,9 +446,10 @@ void buscarRegistros(char *binName, int N) {
     }
 
 
-    Busca buscando; 
 
     for (int i = 0; i < N; i++){
+        Busca filtro = resetarFiltro();
+
         int m;
         scanf("%d", &m);
 
@@ -456,28 +458,140 @@ void buscarRegistros(char *binName, int N) {
             scanf("%s", nomeCampo);
 
             if (strcmp(nomeCampo, "codEstacao") == 0) {
-                char valorCampo[50];
-                scanf("%s", valorCampo);
-                if (strcmp(valorCampo, "NULO") == 0) buscando.codEstacao = -1; 
+                char valor[50];
+                scanf("%s", valor);
+                filtro.codEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
 
-            }
-            else if (strcmp(nomeCampo, "nomeEstacao") == 0) {
-                char valorCampo[50];
-                scanf("%s", valorCampo);
-                if (strcmp(valorCampo, "NULO") == 0) strcpy(buscando.nomeEstacao, "NULO");
-            }
+            } else if (strcmp(nomeCampo, "codLinha") == 0) {
+                char valor[50];
+                scanf("%s", valor);
+                filtro.codLinha = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
 
+            } else if (strcmp(nomeCampo, "codProxEstacao") == 0) {
+                char valor[50];
+                scanf("%s", valor);
+                filtro.codProxEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+            } else if (strcmp(nomeCampo, "distProxEstacao") == 0) {
+                char valor[50];
+                scanf("%s", valor);
+                filtro.distProxEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+            } else if (strcmp(nomeCampo, "codLinhaIntegra") == 0) {
+                char valor[50];
+                scanf("%s", valor);
+                filtro.codLinhaIntegra = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+            } else if (strcmp(nomeCampo, "codEstIntegra") == 0) {
+                char valor[50];
+                scanf("%s", valor);
+                filtro.codEstIntegra = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+            } else if (strcmp(nomeCampo, "nomeEstacao") == 0) {
+                ScanQuoteString(filtro.nomeEstacao);
+
+            } else if (strcmp(nomeCampo, "nomeLinha") == 0) {
+                ScanQuoteString(filtro.nomeLinha);
+            }
+        }
+
+
+        fseek(fileBin, 17, SEEK_SET);
+
+        int encontrouAlgum = 0;
+        Registro reg;
+
+        while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1){
+            if (reg.removido == '1') {
+                fseek(fileBin, 79, SEEK_CUR);
+                continue;
+            }
+            // --- LEITURA DOS REGISTROS ---
+            // Lê o restante do registro para comparar
+            fread(&reg.proximo, sizeof(int), 1, fileBin);
+            fread(&reg.codEstacao, sizeof(int), 1, fileBin);
+            fread(&reg.codLinha, sizeof(int), 1, fileBin);
+            fread(&reg.codProxEstacao, sizeof(int), 1, fileBin);
+            fread(&reg.distProxEstacao, sizeof(int), 1, fileBin);
+            fread(&reg.codLinhaIntegra, sizeof(int), 1, fileBin);
+            fread(&reg.codEstIntegra, sizeof(int), 1, fileBin);
+
+            fread(&reg.tamNomeEstacao, sizeof(int), 1, fileBin);
+            if (reg.tamNomeEstacao > 0) {
+                fread(reg.nomeEstacao, sizeof(char), reg.tamNomeEstacao, fileBin);
+                reg.nomeEstacao[reg.tamNomeEstacao] = '\0';
+            } else strcpy(reg.nomeEstacao, "");
+
+            fread(&reg.tamNomeLinha, sizeof(int), 1, fileBin);
+            if (reg.tamNomeLinha > 0) {
+                fread(reg.nomeLinha, sizeof(char), reg.tamNomeLinha, fileBin);
+                reg.nomeLinha[reg.tamNomeLinha] = '\0';
+            } else strcpy(reg.nomeLinha, "");
+
+            // Arrumando os bytes de lixo, pula o lixo
+            int bytesLidos = 1 + (9 * 4) + reg.tamNomeEstacao + reg.tamNomeLinha;
+            fseek(fileBin, 80 - bytesLidos, SEEK_CUR);
+
+            
+            // LOGICA DE COMPARAÇÃO (AND): Se o filtro for != -2, o registro deve bater
+            // Testa se o filtro existe e depois faz um AND para ver se o valor BATE
+            // IMPORTANTE: Só entra no IF se o filtro existir e estiver ERRADO
+            // Pois se estiver errado basta descartar e partir para o prox reg
+            int coincide = 1;
+            if (filtro.codEstacao != -2 && reg.codEstacao != filtro.codEstacao) coincide = 0;
+            if (filtro.codLinha != -2 && reg.codLinha != filtro.codLinha) coincide = 0;
+            if (filtro.codProxEstacao != -2 && reg.codProxEstacao != filtro.codProxEstacao) coincide = 0;
+            if (filtro.distProxEstacao != -2 && reg.distProxEstacao != filtro.distProxEstacao) coincide = 0;
+            if (filtro.codLinhaIntegra != -2 && reg.codLinhaIntegra != filtro.codLinhaIntegra) coincide = 0;
+            if (filtro.codEstIntegra != -2 && reg.codEstIntegra != filtro.codEstIntegra) coincide = 0;
+            if (strlen(filtro.nomeEstacao) > 0 && strcmp(reg.nomeEstacao, filtro.nomeEstacao) != 0) coincide = 0;
+            if (strlen(filtro.nomeLinha) > 0 && strcmp(reg.nomeLinha, filtro.nomeLinha) != 0) coincide = 0;
+
+            if (coincide) {
+            // Imprime usando a mesma lógica da listarRegistros, porem se tiver -1 imprime NULO
+                // 1. codEstacao
+                if (reg.codEstacao != -1) printf("%d ", reg.codEstacao); 
+                else printf("NULO ");
+                
+                // 2. nomeEstacao
+                if (reg.tamNomeEstacao > 0) printf("%s ", reg.nomeEstacao); 
+                else printf("NULO ");
+                
+                // 3. codLinha
+                if (reg.codLinha != -1) printf("%d ", reg.codLinha); 
+                else printf("NULO ");
+                
+                // 4. nomeLinha
+                if (reg.tamNomeLinha > 0) printf("%s ", reg.nomeLinha); 
+                else printf("NULO ");
+                
+                // 5. codProxEstacao
+                if (reg.codProxEstacao != -1) printf("%d ", reg.codProxEstacao); 
+                else printf("NULO ");
+                
+                // 6. distProxEstacao
+                if (reg.distProxEstacao != -1) printf("%d ", reg.distProxEstacao); 
+                else printf("NULO ");
+                
+                // 7. codLinhaIntegra
+                if (reg.codLinhaIntegra != -1) printf("%d ", reg.codLinhaIntegra); 
+                else printf("NULO ");
+                
+                // 8. codEstIntegra (Último campo tem a quebra de linha \n)
+                if (reg.codEstIntegra != -1) printf("%d\n", reg.codEstIntegra); 
+                else printf("NULO\n");
+
+                encontrouAlgum = 1;
+            }
+        }
+        if (!encontrouAlgum) {
+            printf("Registro Inexistente\n");
+        }
+        
     }
-
-
-    
-
-    
-    // Lógica da Funcionalidade 3 entrará aqui!
-    
     fclose(fileBin);
 }
-}
+
 
 // removerRegistros (DELETE)
 // recebe: arquivo binario e N = numeros de remocoes
@@ -532,6 +646,19 @@ Cabecalho iniciarCabecalho() {
     cab.nroParesEstacao = 0;
 
     return cab;
+}
+Busca resetarFiltro() {
+    Busca filtro;
+    filtro.codEstacao = -2;
+    filtro.codLinha = -2;
+    filtro.codProxEstacao = -2;
+    filtro.distProxEstacao = -2;
+    filtro.codLinhaIntegra = -2;
+    filtro.codEstIntegra = -2;
+    strcpy(filtro.nomeEstacao, "");
+    strcpy(filtro.nomeLinha, "");
+
+    return filtro;
 }
 
 void escreverCabecalho(FILE *fileBin, Cabecalho cab) {
