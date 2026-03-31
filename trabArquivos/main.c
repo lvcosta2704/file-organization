@@ -46,6 +46,64 @@ typedef struct {
     char nomeLinha[256];
 } Registro;
 
+// ----------- PROTOTIPOS DE FUNCOES ------------
+void BinarioNaTela(char *arquivo);
+void ScanQuoteString(char *str);
+void criarBin(char* csvName, char* binName);
+void listarRegistros(char *binName);
+void buscarRegistros(char *binName, int N);
+void removerRegistros(char *binName, int N);
+void inserirRegistros(char *binName, int N);
+void atualizarRegistros(char *binName, int N);
+
+// -------- FLUXO PRINCIPAL DO PROGRAMA --------
+int main () {
+    int funcionalidade;
+    char inputfile[256];
+    char outputfile[256];
+
+    if (scanf("%d", &funcionalidade) != 1) return 0;
+
+    switch (funcionalidade) {
+        case 1:
+            scanf("%s %s", inputfile, outputfile);
+            criarBin(inputfile, outputfile);
+            break; 
+        case 2:
+            scanf("%s", inputfile);
+            listarRegistros(inputfile);
+            break;
+        case 3: {
+            int n;
+            scanf("%s %d", inputfile, &n);
+            buscarRegistros(inputfile, n);
+            break;
+        }
+        case 4: {
+            int n;
+            scanf("%s %d", inputfile, &n);
+            removerRegistros(inputfile, n);
+            break;
+        }
+        case 5: {
+            int n;
+            scanf("%s %d", inputfile, &n);
+            inserirRegistros(inputfile, n);
+            break;
+        }
+        case 6: {
+            int n;
+            scanf("%s %d", inputfile, &n);
+            atualizarRegistros(inputfile, n);
+            break;
+        }
+        default:
+            break;
+    }
+    
+    return 0;
+}
+
 // -------------- FUNCOES ---------------
 
 // binarioNaTela fornecida
@@ -450,51 +508,4 @@ void inserirRegistros(char *binName, int N) {
 // funcionalidade: buscar e mostrar registros filtrados
 void atualizarRegistros(char *binName, int N) {
     ;
-}
-
-int main () {
-    int funcionalidade;
-    char inputfile[256];
-    char outputfile[256];
-
-    if (scanf("%d", &funcionalidade) != 1) return 0;
-
-    switch (funcionalidade) {
-        case 1:
-            scanf("%s %s", inputfile, outputfile);
-            criarBin(inputfile, outputfile);
-            break; 
-        case 2:
-            scanf("%s", inputfile);
-            listarRegistros(inputfile);
-            break;
-        case 3: {
-            int n;
-            scanf("%s %d", inputfile, &n);
-            buscarRegistros(inputfile, n);
-            break;
-        }
-        case 4: {
-            int n;
-            scanf("%s %d", inputfile, &n);
-            removerRegistros(inputfile, n);
-            break;
-        }
-        case 5: {
-            int n;
-            scanf("%s %d", inputfile, &n);
-            inserirRegistros(inputfile, n);
-            break;
-        }
-        case 6: {
-            int n;
-            scanf("%s %d", inputfile, &n);
-            atualizarRegistros(inputfile, n);
-            break;
-        }
-        default:
-            break;
-    }
-    
-    return 0;
 }
