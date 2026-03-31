@@ -49,9 +49,7 @@ typedef struct {
     char nomeLinha[256];
 } Registro;
 
-// ----------- PROTOTIPOS DE FUNCOES ------------
-void BinarioNaTela(char *arquivo);
-void ScanQuoteString(char *str);
+// ------ PROTOTIPOS DAS FUNCOES PRINCIPAIS ------
 void criarBin(char* csvName, char* binName);
 void listarRegistros(char *binName);
 void buscarRegistros(char *binName, int N);
@@ -59,7 +57,12 @@ void removerRegistros(char *binName, int N);
 void inserirRegistros(char *binName, int N);
 void atualizarRegistros(char *binName, int N);
 
-// -------- FLUXO PRINCIPAL DO PROGRAMA --------
+// ----------- PROTOTIPOS DOS MODULOS -----------
+void BinarioNaTela(char *arquivo); // Fornecido
+void ScanQuoteString(char *str); // Fornecido
+Cabecalho iniciarCabecalho();
+
+// -------- FLUXO PRINCIPAL DO PROGRAMA ---------
 int main () {
     int funcionalidade;
     char inputfile[256];
@@ -108,7 +111,6 @@ int main () {
 }
 
 // -------------- FUNCOES ---------------
-
 // binarioNaTela fornecida
 void BinarioNaTela(char *arquivo) {
     FILE *fs;
@@ -184,12 +186,7 @@ void criarBin(char* csvName, char* binName) {
     ParEstacao paresVistos[MAX_REGISTROS];
 
     // Dados estaticos para o cabeçalho
-    Cabecalho cab;
-    cab.status = '0';
-    cab.topo = -1;
-    cab.proxRRN = 0;
-    cab.nroEstacoes = 0;
-    cab.nroParesEstacao = 0;
+    Cabecalho cab = iniciarCabecalho();
 
     // Escrevendo o cabeçalho inconsistente inicialmente
     fwrite(&cab.status, sizeof(char), 1, fileBin);
@@ -501,17 +498,8 @@ void removerRegistros(char *binName, int N) {
         printf("Falha no processamento do arquivo.\n");
         return;
     }
-    
-    // Checa o byte de status do arquivo. Se for zero, para
-    char status;
-    fread(&status, sizeof(char), 1, fileBin);
-    if (status == '0') {
-        printf("Falha no processamento do arquivo.\n");
-        fclose(fileBin);
-        return;
-    }
-    
 
+    
 }
 
 // inserirRegistros (INSERT INTO)
@@ -528,4 +516,17 @@ void inserirRegistros(char *binName, int N) {
 // funcionalidade: buscar e mostrar registros filtrados
 void atualizarRegistros(char *binName, int N) {
     ;
+}
+
+// ------- MÓDULOS -------
+
+Cabecalho iniciarCabecalho() {
+    Cabecalho cab;
+    cab.status = '0';
+    cab.topo = -1;
+    cab.proxRRN = 0;
+    cab.nroEstacoes = 0;
+    cab.nroParesEstacao = 0;
+
+    return cab;
 }
