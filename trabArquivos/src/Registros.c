@@ -6,7 +6,8 @@
 
 // Definicao de macros
 #define MAX_REGISTROS 200
-#define DATA_DIR "data/"
+#define TAM_CABECALHO 17
+#define TAM_REGISTRO 80
 
 // struct que ajuda a contar os pares de estacoes diferentes
 struct parestacao{
@@ -386,14 +387,14 @@ void buscarRegistros(char *binName, int N) {
     for (int i = 0; i < N; i++){ // Executa N vezes
         Busca filtro = filtrarRegistro();
 
-        fseek(fileBin, 17, SEEK_SET);
+        fseek(fileBin, TAM_CABECALHO, SEEK_SET);
 
         int encontrouAlgum = 0;
         Registro reg;
 
         while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1){
             if (reg.removido == '1') {
-                fseek(fileBin, 79, SEEK_CUR);
+                fseek(fileBin, TAM_REGISTRO - 1, SEEK_CUR);
                 continue;
             }
             // --- LEITURA DOS REGISTROS ---
@@ -504,7 +505,11 @@ void removerRegistros(char *binName, int N) {
         return;
     }
 
-    
+    for(int i = 0; i < N; i++) {
+        Busca filtro = filtrarRegistro();
+
+
+    }
 
     fclose(fileBin);
 }
