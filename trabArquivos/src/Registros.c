@@ -264,7 +264,7 @@ void criarBin(char* csvName, char* binName) {
     BinarioNaTela(binName);
 }
 
-// listarRegistros (SELECT)
+// listarRegistros (SELECT FROM -)
 // recebe: arquivo binario
 // retorno: void
 // funcionalidade: buscar e mostrar todos os registros do binario 
@@ -362,7 +362,7 @@ void listarRegistros(char *binName) {
     fclose(fileBin);
 }
 
-// buscarRegistros (SELECT)
+// buscarRegistros (SELECT FROM - WHERE -)
 // recebe: arquivo binario e N = numeros de buscas
 // retorno: void
 // funcionalidade: buscar e mostrar registros filtrados
@@ -385,14 +385,17 @@ void buscarRegistros(char *binName, int N) {
     }
 
     for (int i = 0; i < N; i++){ // Executa N vezes
-        Busca filtro = filtrarRegistro();
+        Busca filtro = filtrarRegistro(); // Cria um filtro para a busca (Simula o WHERE)
 
-        fseek(fileBin, TAM_CABECALHO, SEEK_SET);
+        fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Coloca a referência para o arquivo no primeiro registro de dados
 
         int encontrouAlgum = 0;
         Registro reg;
 
+        // Passa por cada registro de dados sequencialmente
+        // verificando se ele está removido a principio
         while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1){
+            // Se estiver removido pula para o proximo
             if (reg.removido == '1') {
                 fseek(fileBin, TAM_REGISTRO - 1, SEEK_CUR);
                 continue;
@@ -421,8 +424,7 @@ void buscarRegistros(char *binName, int N) {
 
             // Arrumando os bytes de lixo, pula o lixo
             int bytesLidos = 1 + (9 * 4) + reg.tamNomeEstacao + reg.tamNomeLinha;
-            fseek(fileBin, 80 - bytesLidos, SEEK_CUR);
-
+            fseek(fileBin, TAM_REGISTRO - bytesLidos, SEEK_CUR);
             
             // LOGICA DE COMPARAÇÃO (AND): Se o filtro for != -2, o registro deve bater
             // Testa se o filtro existe e depois faz um AND para ver se o valor BATE
@@ -483,7 +485,7 @@ void buscarRegistros(char *binName, int N) {
     fclose(fileBin);
 }
 
-// removerRegistros (DELETE)
+// removerRegistros (DELETE FROM - WHERE -)
 // recebe: arquivo binario e N = numeros de remocoes
 // retorno: void
 // funcionalidade: remover registros filtrados baseado na abordagem dinamica
@@ -525,7 +527,7 @@ void inserirRegistros(char *binName, int N) {
 // atualizarRegistros (UPDATE)
 // recebe: arquivo binario e N = numeros de atualizacoes
 // retorno: void
-// funcionalidade: buscar e mostrar registros filtrados
+// funcionalidade: buscar e atualiza os campos de um registro
 void atualizarRegistros(char *binName, int N) {
     ;
 }
