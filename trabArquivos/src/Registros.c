@@ -2,18 +2,20 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include "Registros.h"
 
 // Definicao de macros
 #define MAX_REGISTROS 200
+#define DATA_DIR "data/"
 
 // struct que ajuda a contar os pares de estacoes diferentes
-typedef struct {
+struct parestacao{
     int origem;
     int destino;
-} ParEstacao;
+};
 
 // struct para armazenar os campos de busca e compara-los
-typedef struct {
+struct busca{
     int codEstacao;
     int codLinha;
     int codProxEstacao;
@@ -22,19 +24,19 @@ typedef struct {
     int codEstIntegra;
     char nomeEstacao[256];
     char nomeLinha[256];
-} Busca;
+};
 
 // struct para armazenar os dados do cabeçalho 
-typedef struct {
+struct cabecalho{
     char status;
     int topo;
     int proxRRN;
     int nroEstacoes;
     int nroParesEstacao;
-} Cabecalho;
+};
 
 // struct para armazenar os dados do cabeçalho de no maximo 80 bytes 
-typedef struct {
+struct registro{
     char removido;
     int proximo;
     int codEstacao;
@@ -47,71 +49,7 @@ typedef struct {
     char nomeEstacao[256];
     int tamNomeLinha;
     char nomeLinha[256];
-} Registro;
-
-// ------ PROTOTIPOS DAS FUNCOES PRINCIPAIS ------
-void criarBin(char* csvName, char* binName);
-void listarRegistros(char *binName);
-void buscarRegistros(char *binName, int N);
-void removerRegistros(char *binName, int N);
-void inserirRegistros(char *binName, int N);
-void atualizarRegistros(char *binName, int N);
-
-// ----------- PROTOTIPOS DOS MODULOS -----------
-void BinarioNaTela(char *arquivo); // Fornecido
-void ScanQuoteString(char *str); // Fornecido
-Cabecalho iniciarCabecalho();
-Busca resetarFiltro();
-void escreverCabecalho(FILE *fileBin, Cabecalho cab);
-void lerCabecalho(FILE *fileBin, Cabecalho *cab);
-
-// -------- FLUXO PRINCIPAL DO PROGRAMA ---------
-int main () {
-    int funcionalidade;
-    char inputfile[50];
-    char outputfile[50];
-
-    if (scanf("%d", &funcionalidade) != 1) return 0;
-
-    switch (funcionalidade) {
-        case 1:
-            scanf("%s %s", inputfile, outputfile);
-            criarBin(inputfile, outputfile);
-            break; 
-        case 2:
-            scanf("%s", inputfile);
-            listarRegistros(inputfile);
-            break;
-        case 3: {
-            int n;
-            scanf("%s %d", inputfile, &n);
-            buscarRegistros(inputfile, n);
-            break;
-        }
-        case 4: {
-            int n;
-            scanf("%s %d", inputfile, &n);
-            removerRegistros(inputfile, n);
-            break;
-        }
-        case 5: {
-            int n;
-            scanf("%s %d", inputfile, &n);
-            inserirRegistros(inputfile, n);
-            break;
-        }
-        case 6: {
-            int n;
-            scanf("%s %d", inputfile, &n);
-            atualizarRegistros(inputfile, n);
-            break;
-        }
-        default:
-            break;
-    }
-    
-    return 0;
-}
+};
 
 // -------------- FUNCOES ---------------
 // binarioNaTela fornecida
@@ -591,7 +529,6 @@ void buscarRegistros(char *binName, int N) {
     }
     fclose(fileBin);
 }
-
 
 // removerRegistros (DELETE)
 // recebe: arquivo binario e N = numeros de remocoes
