@@ -295,30 +295,9 @@ void listarRegistros(char *binName) {
             fseek(fileBin, 79, SEEK_CUR); // pula todos os bytes do registro
             continue; // pula esse registro
         }
-
-        // lendo com fread os campos fixos do registro
-        fread(&reg.proximo, sizeof(int), 1, fileBin);
-        fread(&reg.codEstacao, sizeof(int), 1, fileBin);
-        fread(&reg.codLinha, sizeof(int), 1, fileBin);
-        fread(&reg.codProxEstacao, sizeof(int), 1, fileBin);
-        fread(&reg.distProxEstacao, sizeof(int), 1, fileBin);
-        fread(&reg.codLinhaIntegra, sizeof(int), 1, fileBin);
-        fread(&reg.codEstIntegra, sizeof(int), 1, fileBin);
-
-        fread(&reg.tamNomeEstacao, sizeof(int), 1, fileBin);
-        if (reg.tamNomeEstacao > 0) {
-            fread(reg.nomeEstacao, sizeof(char), reg.tamNomeEstacao, fileBin);
-            reg.nomeEstacao[reg.tamNomeEstacao] = '\0'; // Finaliza a string para o printf
-        }
-
-        fread(&reg.tamNomeLinha, sizeof(int), 1, fileBin);
-        if (reg.tamNomeLinha > 0) {
-            fread(reg.nomeLinha, sizeof(char), reg.tamNomeLinha, fileBin);
-            reg.nomeLinha[reg.tamNomeLinha] = '\0';
-        }
-
-        int bytesLidos = 1 + (9 * 4) + reg.tamNomeEstacao + reg.tamNomeLinha;
-        fseek(fileBin, 80 - bytesLidos, SEEK_CUR); // pula o lixo e vai para o prox registro
+        // chama a funcao lerRegistro que ira fazer todos os fread necessarios 
+        // alem de pular o lixo que tem no registro
+        lerRegistro(fileBin, &reg);
 
         // --- PRINTS ---
         // 1. codEstacao
@@ -402,30 +381,8 @@ void buscarRegistros(char *binName, int N) {
             }
             // --- LEITURA DOS REGISTROS ---
             // Lê o restante do registro para comparar
-            fread(&reg.proximo, sizeof(int), 1, fileBin);
-            fread(&reg.codEstacao, sizeof(int), 1, fileBin);
-            fread(&reg.codLinha, sizeof(int), 1, fileBin);
-            fread(&reg.codProxEstacao, sizeof(int), 1, fileBin);
-            fread(&reg.distProxEstacao, sizeof(int), 1, fileBin);
-            fread(&reg.codLinhaIntegra, sizeof(int), 1, fileBin);
-            fread(&reg.codEstIntegra, sizeof(int), 1, fileBin);
-
-            fread(&reg.tamNomeEstacao, sizeof(int), 1, fileBin);
-            if (reg.tamNomeEstacao > 0) {
-                fread(reg.nomeEstacao, sizeof(char), reg.tamNomeEstacao, fileBin);
-                reg.nomeEstacao[reg.tamNomeEstacao] = '\0';
-            } else strcpy(reg.nomeEstacao, "");
-
-            fread(&reg.tamNomeLinha, sizeof(int), 1, fileBin);
-            if (reg.tamNomeLinha > 0) {
-                fread(reg.nomeLinha, sizeof(char), reg.tamNomeLinha, fileBin);
-                reg.nomeLinha[reg.tamNomeLinha] = '\0';
-            } else strcpy(reg.nomeLinha, "");
-
-            // Arrumando os bytes de lixo, pula o lixo
-            int bytesLidos = 1 + (9 * 4) + reg.tamNomeEstacao + reg.tamNomeLinha;
-            fseek(fileBin, TAM_REGISTRO - bytesLidos, SEEK_CUR);
-            
+            // Lê o registro com os freads e tambem pula o lixo do registro no final
+            lerRegistro(fileBin, &reg);
             // LOGICA DE COMPARAÇÃO (AND): Se o filtro for != -2, o registro deve bater
             // Testa se o filtro existe e depois faz um AND para ver se o valor BATE
             // IMPORTANTE: Só entra no IF se o filtro existir e estiver ERRADO
@@ -532,6 +489,9 @@ void atualizarRegistros(char *binName, int N) {
     ;
 }
 
+
+
+
 // ------- MÓDULOS -------
 Cabecalho iniciarCabecalho() {
     Cabecalho cab;
@@ -629,4 +589,40 @@ void lerCabecalho(FILE *fileBin, Cabecalho *cab) {
     fread(&cab->proxRRN, sizeof(int), 1, fileBin);
     fread(&cab->nroEstacoes, sizeof(int), 1, fileBin);
     fread(&cab->nroParesEstacao, sizeof(int), 1, fileBin);
+}
+// lerRegistro
+// recebe: ponteiro para o arquivo binario e ponteiro para o registro
+// funcionalidade: lê todos os campos de um registro (exceto o removido) e pula o lixo
+// Lê os campos de tamanho fixo
+void lerRegistro(FILE *fileBin, Registro *reg) {
+    
+    fread(&reg->proximo, sizeof(int), 1, fileBin);
+    fread(&reg->codEstacao, sizeof(int), 1, fileBin);
+    fread(&reg->codLinha, sizeof(int), 1, fileBin);
+    fread(&reg->codProxEstacao, sizeof(int), 1, fileBin);
+    fread(&reg->distProxEstacao, sizeof(int), 1, fileBin);
+    fread(&reg->codLinhaIntegra, sizeof(int), 1, fileBin);
+    fread(&reg->codEstIntegra, sizeof(int), 1, fileBin);
+
+    // Lê os campos de tamanho variável
+    fread(&reg->tamNomeEstacao, sizeof(int), 1, fileBin);
+    if (reg->tamNomeEstacao > 0) {
+        fread(reg->nomeEstacao, sizeof(char), reg->tamNomeEstacao, fileBin);
+        reg->nomeEstacao[reg->tamNomeEstacao] = '\0';
+    } else {
+        strcpy(reg->nomeEstacao, "");
+    }
+
+    fread(&reg->tamNomeLinha, sizeof(int), 1, fileBin);
+    if (reg->tamNomeLinha > 0) {
+        fread(reg->nomeLinha, sizeof(char), reg->tamNomeLinha, fileBin);
+        reg->nomeLinha[reg->tamNomeLinha] = '\0';
+    } else {
+        strcpy(reg->nomeLinha, "");
+    }
+
+    // Pula os bytes de lixo ('$') para alinhar os 80 bytes
+    // Obs: são 1 char (removido) + 9 ints (proximo, tamNomes e codigos) = 37 bytes fixos
+    int bytesLidos = 1 + (9 * 4) + reg->tamNomeEstacao + reg->tamNomeLinha;
+    fseek(fileBin, 80 - bytesLidos, SEEK_CUR);
 }
