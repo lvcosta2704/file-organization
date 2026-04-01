@@ -22,5 +22,6 @@ Busca resetarFiltro();
 Busca filtrarRegistro();
 void escreverCabecalho(FILE *fileBin, Cabecalho cab);
 void lerCabecalho(FILE *fileBin, Cabecalho *cab);
+void lerRegistro(FILE *fileBin, Registro *reg);
 
 #endif
