@@ -19,6 +19,7 @@ void BinarioNaTela(char *arquivo); // Fornecido
 void ScanQuoteString(char *str); // Fornecido
 Cabecalho iniciarCabecalho();
 Busca resetarFiltro();
+Busca filtrarRegistro();
 void escreverCabecalho(FILE *fileBin, Cabecalho cab);
 void lerCabecalho(FILE *fileBin, Cabecalho *cab);
 

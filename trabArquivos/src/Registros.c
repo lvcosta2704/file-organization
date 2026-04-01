@@ -383,56 +383,8 @@ void buscarRegistros(char *binName, int N) {
         return;
     }
 
-
-
-    for (int i = 0; i < N; i++){
-        Busca filtro = resetarFiltro();
-
-        int m;
-        scanf("%d", &m);
-
-        for (int j = 0; j < m; j++){
-            char nomeCampo[50];
-            scanf("%s", nomeCampo);
-
-            if (strcmp(nomeCampo, "codEstacao") == 0) {
-                char valor[50];
-                scanf("%s", valor);
-                filtro.codEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
-
-            } else if (strcmp(nomeCampo, "codLinha") == 0) {
-                char valor[50];
-                scanf("%s", valor);
-                filtro.codLinha = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
-
-            } else if (strcmp(nomeCampo, "codProxEstacao") == 0) {
-                char valor[50];
-                scanf("%s", valor);
-                filtro.codProxEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
-
-            } else if (strcmp(nomeCampo, "distProxEstacao") == 0) {
-                char valor[50];
-                scanf("%s", valor);
-                filtro.distProxEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
-
-            } else if (strcmp(nomeCampo, "codLinhaIntegra") == 0) {
-                char valor[50];
-                scanf("%s", valor);
-                filtro.codLinhaIntegra = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
-
-            } else if (strcmp(nomeCampo, "codEstIntegra") == 0) {
-                char valor[50];
-                scanf("%s", valor);
-                filtro.codEstIntegra = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
-
-            } else if (strcmp(nomeCampo, "nomeEstacao") == 0) {
-                ScanQuoteString(filtro.nomeEstacao);
-
-            } else if (strcmp(nomeCampo, "nomeLinha") == 0) {
-                ScanQuoteString(filtro.nomeLinha);
-            }
-        }
-
+    for (int i = 0; i < N; i++){ // Executa N vezes
+        Busca filtro = filtrarRegistro();
 
         fseek(fileBin, 17, SEEK_SET);
 
@@ -584,6 +536,7 @@ Cabecalho iniciarCabecalho() {
 
     return cab;
 }
+
 Busca resetarFiltro() {
     Busca filtro;
     filtro.codEstacao = -2;
@@ -594,6 +547,57 @@ Busca resetarFiltro() {
     filtro.codEstIntegra = -2;
     strcpy(filtro.nomeEstacao, "");
     strcpy(filtro.nomeLinha, "");
+
+    return filtro;
+}
+
+Busca filtrarRegistro() { 
+    Busca filtro = resetarFiltro();
+
+    int m;
+    scanf("%d", &m);
+
+    for (int j = 0; j < m; j++){
+        char nomeCampo[50];
+        scanf("%s", nomeCampo);
+
+        if (strcmp(nomeCampo, "codEstacao") == 0) {
+            char valor[50];
+            scanf("%s", valor);
+            filtro.codEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+        } else if (strcmp(nomeCampo, "codLinha") == 0) {
+            char valor[50];
+            scanf("%s", valor);
+            filtro.codLinha = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+        } else if (strcmp(nomeCampo, "codProxEstacao") == 0) {
+            char valor[50];
+            scanf("%s", valor);
+            filtro.codProxEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+        } else if (strcmp(nomeCampo, "distProxEstacao") == 0) {
+            char valor[50];
+            scanf("%s", valor);
+            filtro.distProxEstacao = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+        } else if (strcmp(nomeCampo, "codLinhaIntegra") == 0) {
+            char valor[50];
+            scanf("%s", valor);
+            filtro.codLinhaIntegra = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+        } else if (strcmp(nomeCampo, "codEstIntegra") == 0) {
+            char valor[50];
+            scanf("%s", valor);
+            filtro.codEstIntegra = (strcmp(valor, "NULO") == 0) ? -1 : atoi(valor);
+
+        } else if (strcmp(nomeCampo, "nomeEstacao") == 0) {
+            ScanQuoteString(filtro.nomeEstacao);
+
+        } else if (strcmp(nomeCampo, "nomeLinha") == 0) {
+            ScanQuoteString(filtro.nomeLinha);
+        }
+    }
 
     return filtro;
 }
