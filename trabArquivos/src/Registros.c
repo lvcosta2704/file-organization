@@ -382,20 +382,10 @@ void buscarRegistros(char *binName, int N) {
             // --- LEITURA DOS REGISTROS ---
             // Lê o restante do registro para comparar
             // Lê o registro com os freads e tambem pula o lixo do registro no final
+            
             lerRegistro(fileBin, &reg);
-            // LOGICA DE COMPARAÇÃO (AND): Se o filtro for != -2, o registro deve bater
-            // Testa se o filtro existe e depois faz um AND para ver se o valor BATE
-            // IMPORTANTE: Só entra no IF se o filtro existir e estiver ERRADO
-            // Pois se estiver errado basta descartar e partir para o prox reg
-            int coincide = 1;
-            if (filtro.codEstacao != -2 && reg.codEstacao != filtro.codEstacao) coincide = 0;
-            if (filtro.codLinha != -2 && reg.codLinha != filtro.codLinha) coincide = 0;
-            if (filtro.codProxEstacao != -2 && reg.codProxEstacao != filtro.codProxEstacao) coincide = 0;
-            if (filtro.distProxEstacao != -2 && reg.distProxEstacao != filtro.distProxEstacao) coincide = 0;
-            if (filtro.codLinhaIntegra != -2 && reg.codLinhaIntegra != filtro.codLinhaIntegra) coincide = 0;
-            if (filtro.codEstIntegra != -2 && reg.codEstIntegra != filtro.codEstIntegra) coincide = 0;
-            if (strlen(filtro.nomeEstacao) > 0 && strcmp(reg.nomeEstacao, filtro.nomeEstacao) != 0) coincide = 0;
-            if (strlen(filtro.nomeLinha) > 0 && strcmp(reg.nomeLinha, filtro.nomeLinha) != 0) coincide = 0;
+
+            int coincide = comparaFiltro(filtro, reg);
 
             if (coincide) {
             // Imprime usando a mesma lógica da listarRegistros, porem se tiver -1 imprime NULO
@@ -493,19 +483,7 @@ void removerRegistros(char *binName, int N) {
             
             lerRegistro(fileBin, &reg);
 
-            // LOGICA DE COMPARAÇÃO (AND): Se o filtro for != -2, o registro deve bater
-            // Testa se o filtro existe e depois faz um AND para ver se o valor BATE
-            // IMPORTANTE: Só entra no IF se o filtro existir e estiver ERRADO
-            // Pois se estiver errado basta descartar e partir para o prox reg
-            int coincide = 1;
-            if (filtro.codEstacao != -2 && reg.codEstacao != filtro.codEstacao) coincide = 0;
-            if (filtro.codLinha != -2 && reg.codLinha != filtro.codLinha) coincide = 0;
-            if (filtro.codProxEstacao != -2 && reg.codProxEstacao != filtro.codProxEstacao) coincide = 0;
-            if (filtro.distProxEstacao != -2 && reg.distProxEstacao != filtro.distProxEstacao) coincide = 0;
-            if (filtro.codLinhaIntegra != -2 && reg.codLinhaIntegra != filtro.codLinhaIntegra) coincide = 0;
-            if (filtro.codEstIntegra != -2 && reg.codEstIntegra != filtro.codEstIntegra) coincide = 0;
-            if (strlen(filtro.nomeEstacao) > 0 && strcmp(reg.nomeEstacao, filtro.nomeEstacao) != 0) coincide = 0;
-            if (strlen(filtro.nomeLinha) > 0 && strcmp(reg.nomeLinha, filtro.nomeLinha) != 0) coincide = 0;
+            int coincide = comparaFiltro(filtro, reg);
 
             if(coincide) {
                 encontrouAlgum = 1;
@@ -701,4 +679,21 @@ void apagaRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN) {
     cab->topo = RRN;
 
     escreverCabecalho(fileBin, *cab);
+}
+
+// LOGICA DE COMPARAÇÃO (AND): Se o filtro for != -2, o registro deve bater
+// Testa se o filtro existe e depois faz um AND para ver se o valor BATE
+// IMPORTANTE: Só entra no IF se o filtro existir e estiver ERRADO
+// Pois se estiver errado basta descartar e partir para o prox reg
+int comparaFiltro(Busca filtro, Registro reg) {
+    if (filtro.codEstacao != -2 && reg.codEstacao != filtro.codEstacao) return 0;
+    if (filtro.codLinha != -2 && reg.codLinha != filtro.codLinha) return 0;
+    if (filtro.codProxEstacao != -2 && reg.codProxEstacao != filtro.codProxEstacao) return 0;
+    if (filtro.distProxEstacao != -2 && reg.distProxEstacao != filtro.distProxEstacao) return 0;
+    if (filtro.codLinhaIntegra != -2 && reg.codLinhaIntegra != filtro.codLinhaIntegra) return 0;
+    if (filtro.codEstIntegra != -2 && reg.codEstIntegra != filtro.codEstIntegra) return 0;
+    if (strlen(filtro.nomeEstacao) > 0 && strcmp(reg.nomeEstacao, filtro.nomeEstacao) != 0) return 0;
+    if (strlen(filtro.nomeLinha) > 0 && strcmp(reg.nomeLinha, filtro.nomeLinha) != 0) return 0;
+
+    return 1;
 }
