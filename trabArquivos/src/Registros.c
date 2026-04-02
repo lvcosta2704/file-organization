@@ -516,7 +516,40 @@ void removerRegistros(char *binName, int N) {
 // retorno: void
 // funcionalidade: inserir novos registros baseado na abordagem dinamica
 void inserirRegistros(char *binName, int N) {
-    ;
+    // Abre o arquivo no modo leitura e verifica se ocorreu bem
+    FILE *fileBin = fopen(binName, "rb+");
+    if (fileBin == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+    Cabecalho cab;
+
+    // Lê o cabecalho do arquivo e verifica se está consistente
+    lerCabecalho(fileBin, &cab);
+    if(cab.status == '0') {
+        printf("Arquivo inconsistente.\n");
+        fclose(fileBin);
+        return;
+    }
+
+    // Marca o arquivo como inconsistente
+    cab.status = '0';
+    escreverCabecalho(fileBin, cab);
+
+    for(int i = 0; i < N; i++) {
+        Registro reg = criarRegistro();
+
+        // Se houver algum registro logicamente removido: 
+        if(cab.topo != -1) {
+           // Inserimos no RRN correspondente ao topo da pilha
+
+        }
+        else { // Caso contrário
+            // Inserimos no próximo RRN (fim do arquivo)
+
+        }
+    }
 }
 
 // atualizarRegistros (UPDATE)
@@ -696,4 +729,58 @@ int comparaFiltro(Busca filtro, Registro reg) {
     if (strlen(filtro.nomeLinha) > 0 && strcmp(reg.nomeLinha, filtro.nomeLinha) != 0) return 0;
 
     return 1;
+}
+
+Registro criarRegistro() {
+    Registro reg;
+
+    reg.removido = '0';
+    reg.proximo = -1;
+
+    scanf("%d", &reg.codEstacao);
+    ScanQuoteString(reg.nomeEstacao);
+    scanf("%d", &reg.codLinha);
+    ScanQuoteString(reg.nomeLinha);
+
+    reg.tamNomeEstacao = strlen(reg.nomeEstacao);
+    reg.tamNomeLinha = strlen(reg.nomeLinha);
+
+    char digitos[64];
+    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    if(!strcmp(digitos, "NULO")) {
+        reg.codProxEstacao = -1;
+    }
+    else {
+        reg.codProxEstacao = atoi(string)
+    }
+
+    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    if(!strcmp(digitos, "NULO")) {
+        reg.distProxEstacao = -1;
+    }
+    else {
+        reg.distProxEstacao = atoi(string)
+    }
+
+    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    if(!strcmp(digitos, "NULO")) {
+        reg.codLinhaIntegra = -1;
+    }
+    else {
+        reg.codLinhaIntegra = atoi(string)
+    }
+
+    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    if(!strcmp(digitos, "NULO")) {
+        reg.codEstacaoIntegra = -1;
+    }
+    else {
+        reg.codEstacaoIntegra = atoi(string)
+    }
+
+    return reg;
+}
+
+void escreverRegistro(FILE* fileBin, Registro reg, int RRN) {
+    ;
 }
