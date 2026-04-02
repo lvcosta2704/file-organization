@@ -448,7 +448,7 @@ void buscarRegistros(char *binName, int N) {
 // funcionalidade: remover registros filtrados baseado na abordagem dinamica
 void removerRegistros(char *binName, int N) {
     // Abre o arquivo no modo leitura e verifica se ocorreu bem
-    FILE *fileBin = fopen(binName, "rb");
+    FILE *fileBin = fopen(binName, "rb+");
     if (fileBin == NULL) {
         printf("Falha no processamento do arquivo.\n");
         return;
@@ -464,13 +464,75 @@ void removerRegistros(char *binName, int N) {
         return;
     }
 
-    for(int i = 0; i < N; i++) {
-        Busca filtro = filtrarRegistro();
+    // Marca o arquivo como inconsistente
+    cab.status = '0';
+    escreverCabecalho(fileBin, cab);
 
+    for (int i = 0; i < N; i++) { // Executa N vezes
+        Busca filtro = filtrarRegistro(); // Cria um filtro para a busca (Simula o WHERE)
 
+        fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Coloca o fseek no primeiro registro de dados
+
+        int encontrouAlgum = 0;
+        Registro reg;
+
+        int RRN = 0; // Inicializa o RRN como zero
+
+        // Passa por cada registro de dados sequencialmente
+        // verificando se ele está removido a principio
+        while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1){
+            // Se estiver removido pula para o proximo
+            if (reg.removido == '1') {
+                fseek(fileBin, TAM_REGISTRO - 1, SEEK_CUR);
+                RRN++; // Atualiza o valor do RRN
+                continue;
+            }
+            // --- LEITURA DOS REGISTROS ---
+            // Lê o restante do registro para comparar
+            // Lê o registro com os freads e tambem pula o lixo do registro no final
+            
+            lerRegistro(fileBin, &reg);
+
+            // LOGICA DE COMPARAÇÃO (AND): Se o filtro for != -2, o registro deve bater
+            // Testa se o filtro existe e depois faz um AND para ver se o valor BATE
+            // IMPORTANTE: Só entra no IF se o filtro existir e estiver ERRADO
+            // Pois se estiver errado basta descartar e partir para o prox reg
+            int coincide = 1;
+            if (filtro.codEstacao != -2 && reg.codEstacao != filtro.codEstacao) coincide = 0;
+            if (filtro.codLinha != -2 && reg.codLinha != filtro.codLinha) coincide = 0;
+            if (filtro.codProxEstacao != -2 && reg.codProxEstacao != filtro.codProxEstacao) coincide = 0;
+            if (filtro.distProxEstacao != -2 && reg.distProxEstacao != filtro.distProxEstacao) coincide = 0;
+            if (filtro.codLinhaIntegra != -2 && reg.codLinhaIntegra != filtro.codLinhaIntegra) coincide = 0;
+            if (filtro.codEstIntegra != -2 && reg.codEstIntegra != filtro.codEstIntegra) coincide = 0;
+            if (strlen(filtro.nomeEstacao) > 0 && strcmp(reg.nomeEstacao, filtro.nomeEstacao) != 0) coincide = 0;
+            if (strlen(filtro.nomeLinha) > 0 && strcmp(reg.nomeLinha, filtro.nomeLinha) != 0) coincide = 0;
+
+            if(coincide) {
+                encontrouAlgum = 1;
+
+                apagaRegistro(fileBin, &reg, &cab, RRN);
+
+                escreverCabecalho(fileBin, cab);
+
+                // Poe o fseek no próximo RRN
+                fseek(fileBin, TAM_CABECALHO + (RRN+1)*TAM_REGISTRO, SEEK_SET);
+            }
+
+            RRN++; // Atualiza o valor do RRN
+        }
+
+        if (!encontrouAlgum) {
+            printf("Registro Inexistente\n");
+        }
     }
 
+    // Marca o arquivo como consistente
+    cab.status = '1';
+    escreverCabecalho(fileBin, cab);
+
     fclose(fileBin);
+
+    BinarioNaTela(binName);
 }
 
 // inserirRegistros (INSERT INTO)
@@ -625,4 +687,18 @@ void lerRegistro(FILE *fileBin, Registro *reg) {
     // Obs: são 1 char (removido) + 9 ints (proximo, tamNomes e codigos) = 37 bytes fixos
     int bytesLidos = 1 + (9 * 4) + reg->tamNomeEstacao + reg->tamNomeLinha;
     fseek(fileBin, 80 - bytesLidos, SEEK_CUR);
+}
+
+void apagaRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN) {
+    // Posiciona o fseek no inicio do registro
+    fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
+
+    reg->removido = '1'; // Marca o registro como logicamente removido
+    reg->proximo = cab->topo; // Marca o valor do próximo RRN removido
+
+    // Escreve no arquivo
+    fwrite(&(reg->removido), sizeof(char), 1, fileBin);
+    fwrite(&(reg->proximo), sizeof(int), 1, fileBin);
+
+    cab->topo = RRN;
 }

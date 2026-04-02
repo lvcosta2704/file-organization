@@ -23,5 +23,6 @@ Busca filtrarRegistro();
 void escreverCabecalho(FILE *fileBin, Cabecalho cab);
 void lerCabecalho(FILE *fileBin, Cabecalho *cab);
 void lerRegistro(FILE *fileBin, Registro *reg);
+void apagaRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN);
 
 #endif
