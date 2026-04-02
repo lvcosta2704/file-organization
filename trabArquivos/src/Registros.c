@@ -512,8 +512,6 @@ void removerRegistros(char *binName, int N) {
 
                 apagaRegistro(fileBin, &reg, &cab, RRN);
 
-                escreverCabecalho(fileBin, cab);
-
                 // Poe o fseek no próximo RRN
                 fseek(fileBin, TAM_CABECALHO + (RRN+1)*TAM_REGISTRO, SEEK_SET);
             }
@@ -701,4 +699,6 @@ void apagaRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN) {
     fwrite(&(reg->proximo), sizeof(int), 1, fileBin);
 
     cab->topo = RRN;
+
+    escreverCabecalho(fileBin, *cab);
 }
