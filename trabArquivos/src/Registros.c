@@ -222,33 +222,7 @@ void criarBin(char* csvName, char* binName) {
         reg.proximo = -1;
 
         // Campos Fixos
-        fwrite(&reg.removido, sizeof(char), 1, fileBin);
-        fwrite(&reg.proximo, sizeof(int), 1, fileBin);
-        fwrite(&reg.codEstacao, sizeof(int), 1, fileBin);
-        fwrite(&reg.codLinha, sizeof(int), 1, fileBin);
-        fwrite(&reg.codProxEstacao, sizeof(int), 1, fileBin);
-        fwrite(&reg.distProxEstacao, sizeof(int), 1, fileBin);
-        fwrite(&reg.codLinhaIntegra, sizeof(int), 1, fileBin);
-        fwrite(&reg.codEstIntegra, sizeof(int), 1, fileBin);
-
-        // Campos Variáveis
-        fwrite(&reg.tamNomeEstacao, sizeof(int), 1, fileBin);
-        if (reg.tamNomeEstacao > 0) {
-            fwrite(reg.nomeEstacao, sizeof(char), reg.tamNomeEstacao, fileBin);
-        }
-        
-        fwrite(&reg.tamNomeLinha, sizeof(int), 1, fileBin);
-        if (reg.tamNomeLinha > 0) {
-            fwrite(reg.nomeLinha, sizeof(char), reg.tamNomeLinha, fileBin); 
-        }
-        
-        // Preenchimento com lixo '$' 
-        int bytesEscritos = 1 + (9 * 4) + reg.tamNomeEstacao + reg.tamNomeLinha; // 1 char, 9 ints, 2 variaveis
-
-        char lixo = '$';
-        for (int i = bytesEscritos; i < 80; i++) {
-            fwrite(&lixo, sizeof(char), 1, fileBin);
-        }
+        escreverRegistro(fileBin, reg);
 
         cab.proxRRN++;
     }
