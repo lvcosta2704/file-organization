@@ -1,6 +1,5 @@
 CC := gcc
 CFLAGS := -Iinclude
-LDFLAGS := -lmd
 
 SRCDIR := src
 INCDIR := include

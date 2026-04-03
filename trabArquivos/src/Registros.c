@@ -341,11 +341,13 @@ void buscarRegistros(char *binName, int N) {
 
                 encontrouAlgum = 1;
             }
+
         }
         if (!encontrouAlgum) {
-            printf("Registro Inexistente\n");
+            printf("Registro inexistente.\n");
         }
-        
+
+        printf("\n");
     }
     fclose(fileBin);
 }
@@ -416,7 +418,7 @@ void removerRegistros(char *binName, int N) {
         }
 
         if (!encontrouAlgum) {
-            printf("Registro Inexistente\n");
+            printf("Registro inexistente.\n");
         }
     }
 
@@ -567,7 +569,7 @@ void atualizarRegistros(char *binName, int N) {
         }
 
         if (!encontrouAlgum) {
-            printf("Registro Inexistente\n");
+            printf("Registro inexistente.\n");
         }
     }
 
