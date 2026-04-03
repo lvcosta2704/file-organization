@@ -27,5 +27,7 @@ void apagaRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN);
 int comparaFiltro(Busca filtro, Registro reg);
 Registro criarRegistro();
 void escreverRegistro(FILE* fileBin, Registro reg);
+Busca inputAtualizacoes();
+void atualizar(Registro *reg, Busca atualizacoes);
 
 #endif

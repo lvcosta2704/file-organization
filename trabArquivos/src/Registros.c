@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include "Registros.h"
+#include "fornecidas.h"
 
 // Definicao de macros
 #define MAX_REGISTROS 200
@@ -53,63 +54,6 @@ struct registro{
 };
 
 // -------------- FUNCOES ---------------
-// binarioNaTela fornecida
-void BinarioNaTela(char *arquivo) {
-    FILE *fs;
-    if (arquivo == NULL || !(fs = fopen(arquivo, "rb"))) {
-        fprintf(stderr,
-                "ERRO AO ESCREVER O BINARIO NA TELA (função binarioNaTela): "
-                "não foi possível abrir o arquivo que me passou para leitura. "
-                "Ele existe e você tá passando o nome certo? Você lembrou de "
-                "fechar ele com fclose depois de usar?\n");
-        return;
-    }
-
-    fseek(fs, 0, SEEK_END);
-    size_t fl = ftell(fs);
-
-    fseek(fs, 0, SEEK_SET);
-    unsigned char *mb = (unsigned char *)malloc(fl);
-    fread(mb, 1, fl, fs);
-
-    unsigned long cs = 0;
-    for (unsigned long i = 0; i < fl; i++) {
-        cs += (unsigned long)mb[i];
-    }
-
-    printf("%lf\n", (cs / (double)100));
-
-    free(mb);
-    fclose(fs);
-}
-
-// ScanQuoteString fornecida
-void ScanQuoteString(char *str) {
-    char R;
-
-    while ((R = getchar()) != EOF && isspace(R))
-        ; // ignorar espaços, \r, \n...
-
-    if (R == 'N' || R == 'n') { // campo NULO
-        getchar();
-        getchar();
-        getchar();       // ignorar o "ULO" de NULO.
-        strcpy(str, ""); // copia string vazia
-    } else if (R == '\"') {
-        if (scanf("%[^\"]", str) != 1) { // ler até o fechamento das aspas
-            strcpy(str, "");
-        }
-        getchar();         // ignorar aspas fechando
-    } else if (R != EOF) { // vc tá tentando ler uma string que não tá entre
-                           // aspas! Fazer leitura normal %s então, pois deve
-                           // ser algum inteiro ou algo assim...
-        str[0] = R;
-        scanf("%s", &str[1]);
-    } else { // EOF
-        strcpy(str, "");
-    }
-}
-
 // criarBin (CREATE TABLE)
 // recebe: arquivo csv e arquivo binario
 // retorno: void
@@ -554,7 +498,86 @@ void inserirRegistros(char *binName, int N) {
 // retorno: void
 // funcionalidade: buscar e atualiza os campos de um registro
 void atualizarRegistros(char *binName, int N) {
-    ;
+    // Abre o arquivo no modo leitura e verifica se ocorreu bem
+    FILE *fileBin = fopen(binName, "rb+");
+    if (fileBin == NULL) {
+        printf("Falha no processamento do arquivo.\n");
+        return;
+    }
+
+    Cabecalho cab;
+
+    // Lê o cabecalho do arquivo e verifica se está consistente
+    lerCabecalho(fileBin, &cab);
+    if(cab.status == '0') {
+        printf("Arquivo inconsistente.\n");
+        fclose(fileBin);
+        return;
+    }
+
+    // Marca o arquivo como inconsistente
+    cab.status = '0';
+    escreverCabecalho(fileBin, cab);
+
+    for (int i = 0; i < N; i++) { // Executa N vezes
+        Busca filtro = filtrarRegistro(); // Cria um filtro para a busca (Simula o WHERE)
+        Busca atualizacoes = inputAtualizacoes(); // Cria um filtro de atualizacoes
+
+        fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Coloca o fseek no primeiro registro de dados
+
+        int encontrouAlgum = 0;
+        Registro reg;
+
+        int RRN = 0; // Inicializa o RRN como zero
+
+        // Passa por cada registro de dados sequencialmente
+        // verificando se ele está removido a principio
+        while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1){
+            // Se estiver removido pula para o proximo
+            if (reg.removido == '1') {
+                fseek(fileBin, TAM_REGISTRO - 1, SEEK_CUR);
+                RRN++; // Atualiza o valor do RRN
+                continue;
+            }
+            // --- LEITURA DOS REGISTROS ---
+            // Lê o restante do registro para comparar
+            // Lê o registro com os freads e tambem pula o lixo do registro no final
+            
+            lerRegistro(fileBin, &reg);
+
+            int coincide = comparaFiltro(filtro, reg);
+
+            if(coincide) {
+                encontrouAlgum = 1;
+
+                // Atualiza o registro
+                atualizar(&reg, atualizacoes);
+
+                // Garante que o fseek está no inicio do registro
+                fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
+
+                // Escreve o novo registro no arquivo
+                escreverRegistro(fileBin, reg);
+
+                // Poe o fseek no próximo RRN
+                fseek(fileBin, TAM_CABECALHO + (RRN+1)*TAM_REGISTRO, SEEK_SET);
+            }
+
+            RRN++; // Atualiza o valor do RRN
+        }
+
+        if (!encontrouAlgum) {
+            printf("Registro Inexistente\n");
+        }
+    }
+
+    // Marca o arquivo como consistente
+    cab.status = '1';
+    escreverCabecalho(fileBin, cab);
+
+    fclose(fileBin);
+
+    BinarioNaTela(binName);
 }
 
 
@@ -805,5 +828,73 @@ void escreverRegistro(FILE* fileBin, Registro reg) {
     char lixo = '$';
     for (int i = bytesEscritos; i < 80; i++) {
         fwrite(&lixo, sizeof(char), 1, fileBin);
+    }
+}
+
+Busca inputAtualizacoes() {
+    Busca reg = resetarFiltro();
+
+    int p;
+    scanf("%d", &p);
+
+    while(p--) {
+        char campo[64];
+        scanf("%s", campo);
+
+        if(!strcmp(campo, "codEstacao")) {
+            scanf("%d", &reg.codEstacao);
+        }
+        else if(!strcmp(campo, "codLinha")) {
+            scanf("%d", &reg.codLinha);
+        }
+        else if(!strcmp(campo, "codProxEstacao")) {
+            scanf("%d", &reg.codProxEstacao);
+        }
+        else if(!strcmp(campo, "distProxEstacao")) {
+            scanf("%d", &reg.distProxEstacao);
+        }
+        else if(!strcmp(campo, "codLinhaIntegra")) {
+            scanf("%d", &reg.codLinhaIntegra);
+        }
+        else if(!strcmp(campo, "codEstacaoIntegra")) {
+            scanf("%d", &reg.codEstIntegra);
+        }
+        else if(!strcmp(campo, "nomeEstacao")) {
+            ScanQuoteString(reg.nomeEstacao);
+        }
+        else if(!strcmp(campo, "nomeLinha")) {
+            ScanQuoteString(reg.nomeLinha);
+        }
+    }
+
+    return reg;
+}
+
+void atualizar(Registro *reg, Busca atualizacoes) {
+    if(atualizacoes.codEstacao != 2){
+        reg->codEstacao = atualizacoes.codEstacao;
+    }
+    if(atualizacoes.codLinha != 2){
+        reg->codLinha = atualizacoes.codLinha;
+    }
+    if(atualizacoes.codProxEstacao != 2){
+        reg->codProxEstacao = atualizacoes.codProxEstacao;
+    }
+    if(atualizacoes.distProxEstacao != 2){
+        reg->distProxEstacao = atualizacoes.distProxEstacao;
+    }
+    if(atualizacoes.codLinhaIntegra != 2){
+        reg->codLinhaIntegra = atualizacoes.codLinhaIntegra;
+    }
+    if(atualizacoes.codEstIntegra != 2){
+        reg->codEstIntegra = atualizacoes.codEstIntegra;
+    }
+    if(strcmp(atualizacoes.nomeEstacao, "")){
+        strcpy(reg->nomeEstacao, atualizacoes.nomeEstacao);
+        reg->tamNomeEstacao = strlen(reg->nomeEstacao);
+    }
+    if(strcmp(atualizacoes.nomeLinha, "")){
+        strcpy(reg->nomeLinha, atualizacoes.nomeLinha);
+        reg->tamNomeLinha = strlen(reg->nomeLinha);
     }
 }
