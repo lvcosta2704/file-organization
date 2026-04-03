@@ -406,7 +406,7 @@ void removerRegistros(char *binName, int N) {
             if(coincide) {
                 encontrouAlgum = 1;
 
-                apagaRegistro(fileBin, &reg, &cab, RRN);
+                apagarRegistro(fileBin, &reg, &cab, RRN);
 
                 // Poe o fseek no próximo RRN
                 fseek(fileBin, TAM_CABECALHO + (RRN+1)*TAM_REGISTRO, SEEK_SET);
@@ -595,6 +595,161 @@ Cabecalho iniciarCabecalho() {
     return cab;
 }
 
+void lerCabecalho(FILE *fileBin, Cabecalho *cab) {
+    fseek(fileBin, 0, SEEK_SET); // Garante que lemos o inicio do binario
+
+    // Lê o cabecalho do arquivo e coloca na struct
+    fread(&cab->status, sizeof(char), 1, fileBin);
+    fread(&cab->topo, sizeof(int), 1, fileBin);
+    fread(&cab->proxRRN, sizeof(int), 1, fileBin);
+    fread(&cab->nroEstacoes, sizeof(int), 1, fileBin);
+    fread(&cab->nroParesEstacao, sizeof(int), 1, fileBin);
+}
+
+void escreverCabecalho(FILE *fileBin, Cabecalho cab) {
+    fseek(fileBin, 0, SEEK_SET); // Garante que escrevemos no inicio do binario
+    
+    // Escreve no arquivo
+    fwrite(&cab.status, sizeof(char), 1, fileBin);
+    fwrite(&cab.topo, sizeof(int), 1, fileBin);
+    fwrite(&cab.proxRRN, sizeof(int), 1, fileBin);
+    fwrite(&cab.nroEstacoes, sizeof(int), 1, fileBin);
+    fwrite(&cab.nroParesEstacao, sizeof(int), 1, fileBin);
+}
+
+// lerRegistro
+// recebe: ponteiro para o arquivo binario e ponteiro para o registro
+// funcionalidade: lê todos os campos de um registro (exceto o removido) e pula o lixo
+// Lê os campos de tamanho fixo
+void lerRegistro(FILE *fileBin, Registro *reg) {
+    
+    fread(&reg->proximo, sizeof(int), 1, fileBin);
+    fread(&reg->codEstacao, sizeof(int), 1, fileBin);
+    fread(&reg->codLinha, sizeof(int), 1, fileBin);
+    fread(&reg->codProxEstacao, sizeof(int), 1, fileBin);
+    fread(&reg->distProxEstacao, sizeof(int), 1, fileBin);
+    fread(&reg->codLinhaIntegra, sizeof(int), 1, fileBin);
+    fread(&reg->codEstIntegra, sizeof(int), 1, fileBin);
+
+    // Lê os campos de tamanho variável
+    fread(&reg->tamNomeEstacao, sizeof(int), 1, fileBin);
+    if (reg->tamNomeEstacao > 0) {
+        fread(reg->nomeEstacao, sizeof(char), reg->tamNomeEstacao, fileBin);
+        reg->nomeEstacao[reg->tamNomeEstacao] = '\0';
+    } else {
+        strcpy(reg->nomeEstacao, "");
+    }
+
+    fread(&reg->tamNomeLinha, sizeof(int), 1, fileBin);
+    if (reg->tamNomeLinha > 0) {
+        fread(reg->nomeLinha, sizeof(char), reg->tamNomeLinha, fileBin);
+        reg->nomeLinha[reg->tamNomeLinha] = '\0';
+    } else {
+        strcpy(reg->nomeLinha, "");
+    }
+
+    // Pula os bytes de lixo ('$') para alinhar os 80 bytes
+    // Obs: são 1 char (removido) + 9 ints (proximo, tamNomes e codigos) = 37 bytes fixos
+    int bytesLidos = 1 + (9 * 4) + reg->tamNomeEstacao + reg->tamNomeLinha;
+    fseek(fileBin, 80 - bytesLidos, SEEK_CUR);
+}
+
+void escreverRegistro(FILE* fileBin, Registro reg) {
+    fwrite(&reg.removido, sizeof(char), 1, fileBin);
+    fwrite(&reg.proximo, sizeof(int), 1, fileBin);
+    fwrite(&reg.codEstacao, sizeof(int), 1, fileBin);
+    fwrite(&reg.codLinha, sizeof(int), 1, fileBin);
+    fwrite(&reg.codProxEstacao, sizeof(int), 1, fileBin);
+    fwrite(&reg.distProxEstacao, sizeof(int), 1, fileBin);
+    fwrite(&reg.codLinhaIntegra, sizeof(int), 1, fileBin);
+    fwrite(&reg.codEstIntegra, sizeof(int), 1, fileBin);
+
+    // Campos Variáveis
+    fwrite(&reg.tamNomeEstacao, sizeof(int), 1, fileBin);
+    if (reg.tamNomeEstacao > 0) {
+        fwrite(reg.nomeEstacao, sizeof(char), reg.tamNomeEstacao, fileBin);
+    }
+    
+    fwrite(&reg.tamNomeLinha, sizeof(int), 1, fileBin);
+    if (reg.tamNomeLinha > 0) {
+        fwrite(reg.nomeLinha, sizeof(char), reg.tamNomeLinha, fileBin); 
+    }
+
+    // Preenchimento com lixo '$' 
+    int bytesEscritos = 1 + (9 * 4) + reg.tamNomeEstacao + reg.tamNomeLinha; // 1 char, 9 ints, 2 variaveis
+
+    char lixo = '$';
+    for (int i = bytesEscritos; i < 80; i++) {
+        fwrite(&lixo, sizeof(char), 1, fileBin);
+    }
+}
+
+void apagarRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN) {
+    // Posiciona o fseek no inicio do registro
+    fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
+
+    reg->removido = '1'; // Marca o registro como logicamente removido
+    reg->proximo = cab->topo; // Marca o valor do próximo RRN removido
+
+    // Escreve no arquivo
+    fwrite(&(reg->removido), sizeof(char), 1, fileBin);
+    fwrite(&(reg->proximo), sizeof(int), 1, fileBin);
+
+    cab->topo = RRN;
+
+    escreverCabecalho(fileBin, *cab);
+}
+
+Registro criarRegistro() {
+    Registro reg;
+
+    reg.removido = '0';
+    reg.proximo = -1;
+
+    scanf("%d", &reg.codEstacao);
+    ScanQuoteString(reg.nomeEstacao);
+    scanf("%d", &reg.codLinha);
+    ScanQuoteString(reg.nomeLinha);
+
+    reg.tamNomeEstacao = strlen(reg.nomeEstacao);
+    reg.tamNomeLinha = strlen(reg.nomeLinha);
+
+    char digitos[64];
+    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    if(!strcmp(digitos, "NULO")) {
+        reg.codProxEstacao = -1;
+    }
+    else {
+        reg.codProxEstacao = atoi(digitos);
+    }
+
+    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    if(!strcmp(digitos, "NULO")) {
+        reg.distProxEstacao = -1;
+    }
+    else {
+        reg.distProxEstacao = atoi(digitos);
+    }
+
+    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    if(!strcmp(digitos, "NULO")) {
+        reg.codLinhaIntegra = -1;
+    }
+    else {
+        reg.codLinhaIntegra = atoi(digitos);
+    }
+
+    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    if(!strcmp(digitos, "NULO")) {
+        reg.codEstIntegra = -1;
+    }
+    else {
+        reg.codEstIntegra = atoi(digitos);
+    }
+
+    return reg;
+}
+
 Busca resetarFiltro() {
     Busca filtro;
     filtro.codEstacao = -2;
@@ -660,80 +815,6 @@ Busca filtrarRegistro() {
     return filtro;
 }
 
-void escreverCabecalho(FILE *fileBin, Cabecalho cab) {
-    fseek(fileBin, 0, SEEK_SET); // Garante que escrevemos no inicio do binario
-    
-    // Escreve no arquivo
-    fwrite(&cab.status, sizeof(char), 1, fileBin);
-    fwrite(&cab.topo, sizeof(int), 1, fileBin);
-    fwrite(&cab.proxRRN, sizeof(int), 1, fileBin);
-    fwrite(&cab.nroEstacoes, sizeof(int), 1, fileBin);
-    fwrite(&cab.nroParesEstacao, sizeof(int), 1, fileBin);
-}
-
-void lerCabecalho(FILE *fileBin, Cabecalho *cab) {
-    fseek(fileBin, 0, SEEK_SET); // Garante que lemos o inicio do binario
-
-    // Lê o cabecalho do arquivo e coloca na struct
-    fread(&cab->status, sizeof(char), 1, fileBin);
-    fread(&cab->topo, sizeof(int), 1, fileBin);
-    fread(&cab->proxRRN, sizeof(int), 1, fileBin);
-    fread(&cab->nroEstacoes, sizeof(int), 1, fileBin);
-    fread(&cab->nroParesEstacao, sizeof(int), 1, fileBin);
-}
-// lerRegistro
-// recebe: ponteiro para o arquivo binario e ponteiro para o registro
-// funcionalidade: lê todos os campos de um registro (exceto o removido) e pula o lixo
-// Lê os campos de tamanho fixo
-void lerRegistro(FILE *fileBin, Registro *reg) {
-    
-    fread(&reg->proximo, sizeof(int), 1, fileBin);
-    fread(&reg->codEstacao, sizeof(int), 1, fileBin);
-    fread(&reg->codLinha, sizeof(int), 1, fileBin);
-    fread(&reg->codProxEstacao, sizeof(int), 1, fileBin);
-    fread(&reg->distProxEstacao, sizeof(int), 1, fileBin);
-    fread(&reg->codLinhaIntegra, sizeof(int), 1, fileBin);
-    fread(&reg->codEstIntegra, sizeof(int), 1, fileBin);
-
-    // Lê os campos de tamanho variável
-    fread(&reg->tamNomeEstacao, sizeof(int), 1, fileBin);
-    if (reg->tamNomeEstacao > 0) {
-        fread(reg->nomeEstacao, sizeof(char), reg->tamNomeEstacao, fileBin);
-        reg->nomeEstacao[reg->tamNomeEstacao] = '\0';
-    } else {
-        strcpy(reg->nomeEstacao, "");
-    }
-
-    fread(&reg->tamNomeLinha, sizeof(int), 1, fileBin);
-    if (reg->tamNomeLinha > 0) {
-        fread(reg->nomeLinha, sizeof(char), reg->tamNomeLinha, fileBin);
-        reg->nomeLinha[reg->tamNomeLinha] = '\0';
-    } else {
-        strcpy(reg->nomeLinha, "");
-    }
-
-    // Pula os bytes de lixo ('$') para alinhar os 80 bytes
-    // Obs: são 1 char (removido) + 9 ints (proximo, tamNomes e codigos) = 37 bytes fixos
-    int bytesLidos = 1 + (9 * 4) + reg->tamNomeEstacao + reg->tamNomeLinha;
-    fseek(fileBin, 80 - bytesLidos, SEEK_CUR);
-}
-
-void apagaRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN) {
-    // Posiciona o fseek no inicio do registro
-    fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
-
-    reg->removido = '1'; // Marca o registro como logicamente removido
-    reg->proximo = cab->topo; // Marca o valor do próximo RRN removido
-
-    // Escreve no arquivo
-    fwrite(&(reg->removido), sizeof(char), 1, fileBin);
-    fwrite(&(reg->proximo), sizeof(int), 1, fileBin);
-
-    cab->topo = RRN;
-
-    escreverCabecalho(fileBin, *cab);
-}
-
 // LOGICA DE COMPARAÇÃO (AND): Se o filtro for != -2, o registro deve bater
 // Testa se o filtro existe e depois faz um AND para ver se o valor BATE
 // IMPORTANTE: Só entra no IF se o filtro existir e estiver ERRADO
@@ -749,86 +830,6 @@ int comparaFiltro(Busca filtro, Registro reg) {
     if (strlen(filtro.nomeLinha) > 0 && strcmp(reg.nomeLinha, filtro.nomeLinha) != 0) return 0;
 
     return 1;
-}
-
-Registro criarRegistro() {
-    Registro reg;
-
-    reg.removido = '0';
-    reg.proximo = -1;
-
-    scanf("%d", &reg.codEstacao);
-    ScanQuoteString(reg.nomeEstacao);
-    scanf("%d", &reg.codLinha);
-    ScanQuoteString(reg.nomeLinha);
-
-    reg.tamNomeEstacao = strlen(reg.nomeEstacao);
-    reg.tamNomeLinha = strlen(reg.nomeLinha);
-
-    char digitos[64];
-    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
-    if(!strcmp(digitos, "NULO")) {
-        reg.codProxEstacao = -1;
-    }
-    else {
-        reg.codProxEstacao = atoi(digitos);
-    }
-
-    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
-    if(!strcmp(digitos, "NULO")) {
-        reg.distProxEstacao = -1;
-    }
-    else {
-        reg.distProxEstacao = atoi(digitos);
-    }
-
-    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
-    if(!strcmp(digitos, "NULO")) {
-        reg.codLinhaIntegra = -1;
-    }
-    else {
-        reg.codLinhaIntegra = atoi(digitos);
-    }
-
-    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
-    if(!strcmp(digitos, "NULO")) {
-        reg.codEstIntegra = -1;
-    }
-    else {
-        reg.codEstIntegra = atoi(digitos);
-    }
-
-    return reg;
-}
-
-void escreverRegistro(FILE* fileBin, Registro reg) {
-    fwrite(&reg.removido, sizeof(char), 1, fileBin);
-    fwrite(&reg.proximo, sizeof(int), 1, fileBin);
-    fwrite(&reg.codEstacao, sizeof(int), 1, fileBin);
-    fwrite(&reg.codLinha, sizeof(int), 1, fileBin);
-    fwrite(&reg.codProxEstacao, sizeof(int), 1, fileBin);
-    fwrite(&reg.distProxEstacao, sizeof(int), 1, fileBin);
-    fwrite(&reg.codLinhaIntegra, sizeof(int), 1, fileBin);
-    fwrite(&reg.codEstIntegra, sizeof(int), 1, fileBin);
-
-    // Campos Variáveis
-    fwrite(&reg.tamNomeEstacao, sizeof(int), 1, fileBin);
-    if (reg.tamNomeEstacao > 0) {
-        fwrite(reg.nomeEstacao, sizeof(char), reg.tamNomeEstacao, fileBin);
-    }
-    
-    fwrite(&reg.tamNomeLinha, sizeof(int), 1, fileBin);
-    if (reg.tamNomeLinha > 0) {
-        fwrite(reg.nomeLinha, sizeof(char), reg.tamNomeLinha, fileBin); 
-    }
-
-    // Preenchimento com lixo '$' 
-    int bytesEscritos = 1 + (9 * 4) + reg.tamNomeEstacao + reg.tamNomeLinha; // 1 char, 9 ints, 2 variaveis
-
-    char lixo = '$';
-    for (int i = bytesEscritos; i < 80; i++) {
-        fwrite(&lixo, sizeof(char), 1, fileBin);
-    }
 }
 
 Busca inputAtualizacoes() {
