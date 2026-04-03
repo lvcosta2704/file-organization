@@ -542,14 +542,33 @@ void inserirRegistros(char *binName, int N) {
 
         // Se houver algum registro logicamente removido: 
         if(cab.topo != -1) {
-           // Inserimos no RRN correspondente ao topo da pilha
+            // Inserimos no RRN correspondente ao topo da pilha
+            int RRN = cab.topo;
 
+            // Coloca a próxima referencia da lista no topo da pilha
+            fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO + 1, SEEK_SET);
+            fread(&cab.topo, sizeof(int), 1, fileBin);
+
+            fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
+            escreverRegistro(fileBin, reg);
         }
         else { // Caso contrário
             // Inserimos no próximo RRN (fim do arquivo)
+            int RRN = cab.proxRRN;
 
+            fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
+            escreverRegistro(fileBin, reg);
+
+            cab.proxRRN++;
         }
     }
+
+    cab.status = '1';
+    escreverCabecalho(fileBin, cab);
+
+    fclose(fileBin);
+
+    BinarioNaTela(binName);
 }
 
 // atualizarRegistros (UPDATE)
@@ -751,7 +770,7 @@ Registro criarRegistro() {
         reg.codProxEstacao = -1;
     }
     else {
-        reg.codProxEstacao = atoi(string)
+        reg.codProxEstacao = atoi(digitos);
     }
 
     scanf("%s", digitos); // Eu sei que tem um bof aqui :(
@@ -759,7 +778,7 @@ Registro criarRegistro() {
         reg.distProxEstacao = -1;
     }
     else {
-        reg.distProxEstacao = atoi(string)
+        reg.distProxEstacao = atoi(digitos);
     }
 
     scanf("%s", digitos); // Eu sei que tem um bof aqui :(
@@ -767,20 +786,46 @@ Registro criarRegistro() {
         reg.codLinhaIntegra = -1;
     }
     else {
-        reg.codLinhaIntegra = atoi(string)
+        reg.codLinhaIntegra = atoi(digitos);
     }
 
     scanf("%s", digitos); // Eu sei que tem um bof aqui :(
     if(!strcmp(digitos, "NULO")) {
-        reg.codEstacaoIntegra = -1;
+        reg.codEstIntegra = -1;
     }
     else {
-        reg.codEstacaoIntegra = atoi(string)
+        reg.codEstIntegra = atoi(digitos);
     }
 
     return reg;
 }
 
-void escreverRegistro(FILE* fileBin, Registro reg, int RRN) {
-    ;
+void escreverRegistro(FILE* fileBin, Registro reg) {
+    fwrite(&reg.removido, sizeof(char), 1, fileBin);
+    fwrite(&reg.proximo, sizeof(int), 1, fileBin);
+    fwrite(&reg.codEstacao, sizeof(int), 1, fileBin);
+    fwrite(&reg.codLinha, sizeof(int), 1, fileBin);
+    fwrite(&reg.codProxEstacao, sizeof(int), 1, fileBin);
+    fwrite(&reg.distProxEstacao, sizeof(int), 1, fileBin);
+    fwrite(&reg.codLinhaIntegra, sizeof(int), 1, fileBin);
+    fwrite(&reg.codEstIntegra, sizeof(int), 1, fileBin);
+
+    // Campos Variáveis
+    fwrite(&reg.tamNomeEstacao, sizeof(int), 1, fileBin);
+    if (reg.tamNomeEstacao > 0) {
+        fwrite(reg.nomeEstacao, sizeof(char), reg.tamNomeEstacao, fileBin);
+    }
+    
+    fwrite(&reg.tamNomeLinha, sizeof(int), 1, fileBin);
+    if (reg.tamNomeLinha > 0) {
+        fwrite(reg.nomeLinha, sizeof(char), reg.tamNomeLinha, fileBin); 
+    }
+
+    // Preenchimento com lixo '$' 
+    int bytesEscritos = 1 + (9 * 4) + reg.tamNomeEstacao + reg.tamNomeLinha; // 1 char, 9 ints, 2 variaveis
+
+    char lixo = '$';
+    for (int i = bytesEscritos; i < 80; i++) {
+        fwrite(&lixo, sizeof(char), 1, fileBin);
+    }
 }
