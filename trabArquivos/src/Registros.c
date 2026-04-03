@@ -523,6 +523,7 @@ void inserirRegistros(char *binName, int N) {
             fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO + 1, SEEK_SET);
             fread(&cab.topo, sizeof(int), 1, fileBin);
 
+            // Vai pro RRN do topo da pilha e escreve o registro
             fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
             escreverRegistro(fileBin, reg);
         }
@@ -530,13 +531,16 @@ void inserirRegistros(char *binName, int N) {
             // Inserimos no próximo RRN (fim do arquivo)
             int RRN = cab.proxRRN;
 
+            // Vai pro final do arquivo e escreve o registro
             fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
             escreverRegistro(fileBin, reg);
 
+            // Atualiza o proximo RRN
             cab.proxRRN++;
         }
     }
 
+    // Marca o arquivo como consistente novamente
     cab.status = '1';
     escreverCabecalho(fileBin, cab);
 
