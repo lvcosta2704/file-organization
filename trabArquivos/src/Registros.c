@@ -575,10 +575,6 @@ void atualizarRegistros(char *binName, int N) {
         }
     }
 
-    // Coloca no cabecalho o novo numero
-    // de estacoes e de pares de estacao
-    contarEstacoesEPares(fileBin, &cab);
-
     // Marca o arquivo como consistente
     cab.status = '1';
     escreverCabecalho(fileBin, cab);
@@ -865,7 +861,7 @@ Busca inputAtualizacoes() {
         else if(!strcmp(campo, "codLinhaIntegra")) {
             scanf("%d", &reg.codLinhaIntegra);
         }
-        else if(!strcmp(campo, "codEstacaoIntegra")) {
+        else if(!strcmp(campo, "codEstIntegra")) {
             scanf("%d", &reg.codEstIntegra);
         }
         else if(!strcmp(campo, "nomeEstacao")) {
@@ -880,22 +876,22 @@ Busca inputAtualizacoes() {
 }
 
 void atualizar(Registro *reg, Busca atualizacoes) {
-    if(atualizacoes.codEstacao != 2){
+    if(atualizacoes.codEstacao != -2){
         reg->codEstacao = atualizacoes.codEstacao;
     }
-    if(atualizacoes.codLinha != 2){
+    if(atualizacoes.codLinha != -2){
         reg->codLinha = atualizacoes.codLinha;
     }
-    if(atualizacoes.codProxEstacao != 2){
+    if(atualizacoes.codProxEstacao != -2){
         reg->codProxEstacao = atualizacoes.codProxEstacao;
     }
-    if(atualizacoes.distProxEstacao != 2){
+    if(atualizacoes.distProxEstacao != -2){
         reg->distProxEstacao = atualizacoes.distProxEstacao;
     }
-    if(atualizacoes.codLinhaIntegra != 2){
+    if(atualizacoes.codLinhaIntegra != -2){
         reg->codLinhaIntegra = atualizacoes.codLinhaIntegra;
     }
-    if(atualizacoes.codEstIntegra != 2){
+    if(atualizacoes.codEstIntegra != -2){
         reg->codEstIntegra = atualizacoes.codEstIntegra;
     }
     if(strcmp(atualizacoes.nomeEstacao, "")){
