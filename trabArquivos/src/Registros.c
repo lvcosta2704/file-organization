@@ -282,7 +282,7 @@ void buscarRegistros(char *binName, int N) {
     }
 
     for (int i = 0; i < N; i++){ // Executa N vezes
-        Busca filtro = filtrarRegistro(); // Cria um filtro para a busca (Simula o WHERE)
+        Busca filtro = inputFiltro(); // Cria um filtro para a busca (Simula o WHERE)
 
         fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Coloca a referência para o arquivo no primeiro registro de dados
 
@@ -379,7 +379,7 @@ void removerRegistros(char *binName, int N) {
     escreverCabecalho(fileBin, cab);
 
     for (int i = 0; i < N; i++) { // Executa N vezes
-        Busca filtro = filtrarRegistro(); // Cria um filtro para a busca (Simula o WHERE)
+        Busca filtro = inputFiltro(); // Cria um filtro para a busca (Simula o WHERE)
 
         fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Coloca o fseek no primeiro registro de dados
 
@@ -462,7 +462,7 @@ void inserirRegistros(char *binName, int N) {
     escreverCabecalho(fileBin, cab);
 
     for(int i = 0; i < N; i++) {
-        Registro reg = criarRegistro();
+        Registro reg = inputRegistro();
 
         // Se houver algum registro logicamente removido: 
         if(cab.topo != -1) {
@@ -530,7 +530,7 @@ void atualizarRegistros(char *binName, int N) {
     escreverCabecalho(fileBin, cab);
 
     for (int i = 0; i < N; i++) { // Executa N vezes
-        Busca filtro = filtrarRegistro(); // Cria um filtro para a busca (Simula o WHERE)
+        Busca filtro = inputFiltro(); // Cria um filtro para a busca (Simula o WHERE)
         Busca atualizacoes = inputAtualizacoes(); // Cria um filtro de atualizacoes
 
         fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Coloca o fseek no primeiro registro de dados
@@ -550,13 +550,14 @@ void atualizarRegistros(char *binName, int N) {
                 continue;
             }
             // --- LEITURA DOS REGISTROS ---
-            // Lê o restante do registro para comparar
-            // Lê o registro com os freads e tambem pula o lixo do registro no final
-            
+            // Lê o restante do registro para comparar            
             lerRegistro(fileBin, &reg);
 
+            // Verifica se algum campo do filtro corresponde
+            // a algum campo do registro
             int coincide = comparaFiltro(filtro, reg);
 
+            // Se coincidir
             if(coincide) {
                 // Atualiza o registro
                 atualizar(&reg, atualizacoes);
@@ -588,6 +589,11 @@ void atualizarRegistros(char *binName, int N) {
 
 
 // ------- MÓDULOS -------
+
+// iniciarCabecalho
+// Inicia o cabecalho com 
+// os valores zerados e
+// retorna ele
 Cabecalho iniciarCabecalho() {
     Cabecalho cab;
     cab.status = '0';
@@ -599,6 +605,9 @@ Cabecalho iniciarCabecalho() {
     return cab;
 }
 
+// lerCabecalho
+// Lê o cabecalho de fileBin usando fread() em
+// cada um dos campos e armazena na struct cab
 void lerCabecalho(FILE *fileBin, Cabecalho *cab) {
     fseek(fileBin, 0, SEEK_SET); // Garante que lemos o inicio do binario
 
@@ -610,6 +619,10 @@ void lerCabecalho(FILE *fileBin, Cabecalho *cab) {
     fread(&cab->nroParesEstacao, sizeof(int), 1, fileBin);
 }
 
+// escreverCabecalho
+// Escreve o cabecalho armazenado em cab
+// para o registro de cabecalho de fileBin
+// usando fwrite() em cada um dos campos
 void escreverCabecalho(FILE *fileBin, Cabecalho cab) {
     fseek(fileBin, 0, SEEK_SET); // Garante que escrevemos no inicio do binario
     
@@ -658,6 +671,11 @@ void lerRegistro(FILE *fileBin, Registro *reg) {
     fseek(fileBin, 80 - bytesLidos, SEEK_CUR);
 }
 
+// escreverRegistro
+// Escreve o registro armazenado em reg
+// para algum registro de dados de fileBin
+// usando fwrite() em cada um dos campos.
+// Preenche o campo com lixo no final
 void escreverRegistro(FILE* fileBin, Registro reg) {
     fwrite(&reg.removido, sizeof(char), 1, fileBin);
     fwrite(&reg.proximo, sizeof(int), 1, fileBin);
@@ -688,6 +706,11 @@ void escreverRegistro(FILE* fileBin, Registro reg) {
     }
 }
 
+// apagarRegistro
+// Apaga o registro de RRN especificado no parametro
+// conforme a abordagem dinamica de reutilizacao de
+// registros logicamente removidos. Coloca o head da lista
+// encadeada no campo "topo" do cabecalho
 void apagarRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN) {
     // Posiciona o fseek no inicio do registro
     fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
@@ -699,27 +722,37 @@ void apagarRegistro(FILE *fileBin, Registro *reg, Cabecalho *cab, int RRN) {
     fwrite(&(reg->removido), sizeof(char), 1, fileBin);
     fwrite(&(reg->proximo), sizeof(int), 1, fileBin);
 
+    // Atualiza o topo da stack com o valor
+    // do RRN do registro removido
     cab->topo = RRN;
-
     escreverCabecalho(fileBin, *cab);
 }
 
-Registro criarRegistro() {
+// inputRegistro()
+// Cria um registro pedindo ao usuario cada um
+// dos seus campos.
+Registro inputRegistro() {
     Registro reg;
 
     reg.removido = '0';
     reg.proximo = -1;
 
+    // Pede ao usuario os campos padrao
     scanf("%d", &reg.codEstacao);
     ScanQuoteString(reg.nomeEstacao);
     scanf("%d", &reg.codLinha);
     ScanQuoteString(reg.nomeLinha);
 
+    // Coloca o tamanho dos nomes em seus
+    // respectivos campos
     reg.tamNomeEstacao = strlen(reg.nomeEstacao);
     reg.tamNomeLinha = strlen(reg.nomeLinha);
 
+    // Pede os campos opcionais
+    // verificando se o usuario passou
+    // "NULO"
     char digitos[64];
-    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    scanf("%s", digitos);
     if(!strcmp(digitos, "NULO")) {
         reg.codProxEstacao = -1;
     }
@@ -727,7 +760,7 @@ Registro criarRegistro() {
         reg.codProxEstacao = atoi(digitos);
     }
 
-    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    scanf("%s", digitos);
     if(!strcmp(digitos, "NULO")) {
         reg.distProxEstacao = -1;
     }
@@ -735,7 +768,7 @@ Registro criarRegistro() {
         reg.distProxEstacao = atoi(digitos);
     }
 
-    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    scanf("%s", digitos);
     if(!strcmp(digitos, "NULO")) {
         reg.codLinhaIntegra = -1;
     }
@@ -743,7 +776,7 @@ Registro criarRegistro() {
         reg.codLinhaIntegra = atoi(digitos);
     }
 
-    scanf("%s", digitos); // Eu sei que tem um bof aqui :(
+    scanf("%s", digitos);
     if(!strcmp(digitos, "NULO")) {
         reg.codEstIntegra = -1;
     }
@@ -754,6 +787,9 @@ Registro criarRegistro() {
     return reg;
 }
 
+// resetarFiltro
+// Preenche um filtro com os
+// campos de inicializacao
 Busca resetarFiltro() {
     Busca filtro;
     filtro.codEstacao = -2;
@@ -768,16 +804,23 @@ Busca resetarFiltro() {
     return filtro;
 }
 
-Busca filtrarRegistro() { 
+// inputFiltro
+// Pede ao usuario que passe um 
+// filtro de busca
+Busca inputFiltro() { 
+    // Inicializa o filtro
     Busca filtro = resetarFiltro();
 
     int m;
     scanf("%d", &m);
 
+    // Preenche 'm' campos do filtro
     for (int j = 0; j < m; j++){
+        // Pede ao usuario o nome do campo
         char nomeCampo[50];
         scanf("%s", nomeCampo);
 
+        // Preenche o campo especificado
         if (strcmp(nomeCampo, "codEstacao") == 0) {
             char valor[50];
             scanf("%s", valor);
@@ -836,6 +879,10 @@ int comparaFiltro(Busca filtro, Registro reg) {
     return 1;
 }
 
+// inputAtualizacaoes
+// Pede ao usuario os campos
+// a serem atualizados e retorna
+// uma struct contendo eles
 Busca inputAtualizacoes() {
     Busca reg = resetarFiltro();
 
@@ -875,6 +922,9 @@ Busca inputAtualizacoes() {
     return reg;
 }
 
+// atualizar
+// Atualiza um registro com base nos campos nao-nulos
+// de uma struct que contem os campos a serem atualizados
 void atualizar(Registro *reg, Busca atualizacoes) {
     if(atualizacoes.codEstacao != -2){
         reg->codEstacao = atualizacoes.codEstacao;
@@ -904,6 +954,7 @@ void atualizar(Registro *reg, Busca atualizacoes) {
     }
 }
 
+// contarEstacoesEPares
 // Conta a quantidade de estacoes e de pares de estacao
 // e coloca no Cabecalho
 void contarEstacoesEPares(FILE *fileBin, Cabecalho *cab) {
