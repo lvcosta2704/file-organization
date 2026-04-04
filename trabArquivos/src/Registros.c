@@ -6,7 +6,7 @@
 #include "fornecidas.h"
 
 // Definicao de macros
-#define MAX_REGISTROS 200
+#define MAX_REGISTROS 250
 #define TAM_CABECALHO 17
 #define TAM_REGISTRO 80
 
@@ -422,6 +422,10 @@ void removerRegistros(char *binName, int N) {
         }
     }
 
+    // Coloca no cabecalho o novo numero
+    // de estacoes e de pares de estacao
+    contarEstacoesEPares(fileBin, &cab);
+
     // Marca o arquivo como consistente
     cab.status = '1';
     escreverCabecalho(fileBin, cab);
@@ -485,6 +489,10 @@ void inserirRegistros(char *binName, int N) {
             cab.proxRRN++;
         }
     }
+
+    // Coloca no cabecalho o novo numero
+    // de estacoes e de pares de estacao
+    contarEstacoesEPares(fileBin, &cab);
 
     // Marca o arquivo como consistente novamente
     cab.status = '1';
@@ -550,8 +558,6 @@ void atualizarRegistros(char *binName, int N) {
             int coincide = comparaFiltro(filtro, reg);
 
             if(coincide) {
-                encontrouAlgum = 1;
-
                 // Atualiza o registro
                 atualizar(&reg, atualizacoes);
 
@@ -567,11 +573,11 @@ void atualizarRegistros(char *binName, int N) {
 
             RRN++; // Atualiza o valor do RRN
         }
-
-        if (!encontrouAlgum) {
-            printf("Registro inexistente.\n");
-        }
     }
+
+    // Coloca no cabecalho o novo numero
+    // de estacoes e de pares de estacao
+    contarEstacoesEPares(fileBin, &cab);
 
     // Marca o arquivo como consistente
     cab.status = '1';
@@ -899,5 +905,71 @@ void atualizar(Registro *reg, Busca atualizacoes) {
     if(strcmp(atualizacoes.nomeLinha, "")){
         strcpy(reg->nomeLinha, atualizacoes.nomeLinha);
         reg->tamNomeLinha = strlen(reg->nomeLinha);
+    }
+}
+
+// Conta a quantidade de estacoes e de pares de estacao
+// e coloca no Cabecalho
+void contarEstacoesEPares(FILE *fileBin, Cabecalho *cab) {
+    if(fileBin == NULL)
+        return;
+
+    int RRN = 0;
+    
+    // Reseta a contagem de estacoes e
+    // de pares do cabecalho
+    cab->nroEstacoes = 0;
+    cab->nroParesEstacao = 0;
+
+    char nomesVistos[MAX_REGISTROS][256];
+    ParEstacao paresVistos[MAX_REGISTROS];
+
+    // Posiciona o fseek pro primeiro registro
+    fseek(fileBin, TAM_CABECALHO, SEEK_SET);
+
+    Registro reg;
+
+    while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1){
+        // Se estiver removido pula para o proximo
+        if (reg.removido == '1') {
+            fseek(fileBin, TAM_REGISTRO - 1, SEEK_CUR);
+            RRN++; // Atualiza o valor do RRN
+            continue;
+        }
+
+        lerRegistro(fileBin, &reg);
+ 
+        // --- LOGICA DE CONTAGEM ---
+        // Checa se a estação já foi vista pelo NOME (regra do PDF)
+        int estacaoRepetida = 0;
+        for (int i = 0; i < cab->nroEstacoes; i++) {
+            if (strcmp(nomesVistos[i], reg.nomeEstacao) == 0) {
+                estacaoRepetida = 1;
+                break;
+            }
+        }
+        if (!estacaoRepetida) {
+            strcpy(nomesVistos[cab->nroEstacoes], reg.nomeEstacao);
+            cab->nroEstacoes++;
+        }
+
+        // Checa se o par já foi visto
+        if (reg.codProxEstacao != -1) {
+            int parRepetido = 0;
+            for (int i = 0; i < cab->nroParesEstacao; i++) {
+                if (paresVistos[i].origem == reg.codEstacao && paresVistos[i].destino == reg.codProxEstacao) {
+                    parRepetido = 1;
+                    break;
+                }
+            }
+            if (!parRepetido) {
+                paresVistos[cab->nroParesEstacao].origem = reg.codEstacao;
+                paresVistos[cab->nroParesEstacao].destino = reg.codProxEstacao;
+                cab->nroParesEstacao++;
+            }
+        }
+
+        RRN++;
+        fseek(fileBin, TAM_CABECALHO + RRN*TAM_REGISTRO, SEEK_SET);
     }
 }

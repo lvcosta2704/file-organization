@@ -27,5 +27,6 @@ Busca filtrarRegistro();
 int comparaFiltro(Busca filtro, Registro reg);
 Busca inputAtualizacoes();
 void atualizar(Registro *reg, Busca atualizacoes);
+void contarEstacoesEPares(FILE *fileBin, Cabecalho *cab);
 
 #endif
