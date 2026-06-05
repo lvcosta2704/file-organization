@@ -36,6 +36,9 @@ typedef struct {
 } BTreeNode;
 
 // Cria um nó vazio
+// Funcionamento:
+// Aloca memória para a criacao do no e inicializa seus campos
+// conforme especificado
 BTreeNode *criarNo() {
   // Aloca memoria para nó
   BTreeNode *node = (BTreeNode *)malloc(TAM_NO);
@@ -45,7 +48,6 @@ BTreeNode *criarNo() {
   }
 
   // Inicializa os campos do nó
-  // conforme especificado
   node->removido = '0';
   node->proximo = -1;
   node->tipoNo = -1; // Inicializa o nó como raiz
