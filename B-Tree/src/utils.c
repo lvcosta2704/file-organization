@@ -1,14 +1,14 @@
 #include "utils.h"
 
 // Troca os elementos
-void swap(int *a, int *b) {
+static void swap(int *a, int *b) {
   int temp = *a;
   *a = *b;
   *b = temp;
 }
 
 // Encontra a posicao de particionamento
-int partition(int *array, int low, int high) {
+static int partition(int *array, int low, int high) {
   int pivot = array[high];
 
   int i = (low - 1);
@@ -25,7 +25,7 @@ int partition(int *array, int low, int high) {
 }
 
 // Algoritmo QuickSort
-void quickSort(int array[], int low, int high) {
+static void quickSort(int array[], int low, int high) {
   if (low < high) {
     int pi = partition(array, low, high);
 

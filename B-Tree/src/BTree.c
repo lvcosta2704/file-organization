@@ -1,39 +1,11 @@
-#include "BTree.h"
-#include "Registros.h"
-#include "fornecidas.h"
-#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "BTree.h"
+#include "query.h"
+#include "utils.h"
 
-// Definicao de macros
-#define ORDEM 4
-#define MAX_CHAVES ORDEM - 1
-#define TAM_CABECALHO 17
-#define TAM_NO 13 + 8 * MAX_CHAVES + 4 * ORDEM
-
-// Struct para armazenar a chave e seu respectivo índice
-struct chaveIndice {
-  int codEstacao;
-  int RRN;
-};
-
-typedef struct {
-  char status;
-  int noRaiz;
-  int topo;
-  int proxRRN;
-  int nroNos;
-} BTreeHeader;
-
-typedef struct {
-  char removido;
-  int proximo;
-  int tipoNo;
-  int nroChaves;
-  struct chaveIndice *chave; // C1, Pr1 a Cn, Prn, MAX_CHAVES
-  int *indiceNo;             // P1 a Pn, ORDEM
-} BTreeNode;
+// === ARVORE-B ===
 
 // Cria um nó vazio
 // Funcionamento:
@@ -55,14 +27,14 @@ BTreeNode *criarNo() {
 
   // Inicializa as chaves como -1
   for (int i = 0; i < MAX_CHAVES; i++) {
-    node->chave[i].codEstacao = -1;
-    node->chave[i].RRN = -1;
+    node->indice[i].codEstacao = -1;
+    node->indice[i].RRN = -1;
   }
 
   // Inicializa os indices para os outros nós
   // como -1
   for (int i = 0; i < ORDEM; i++) {
-    node->indiceNo[i] = -1;
+    node->ponteiroNo[i] = -1;
   }
 
   return node;
