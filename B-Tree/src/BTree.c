@@ -80,6 +80,16 @@ void lerNo(FILE *btreeindex, int RRN, BTreeNode *node) {
   }
 }
 
+void lerCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header) {
+  fseek(btreeindex, 0, SEEK_SET);
+
+  fread(&header->status, sizeof(char), 1, btreeindex);
+  fread(&header->noRaiz, sizeof(int), 1, btreeindex);
+  fread(&header->topo, sizeof(int), 1, btreeindex);
+  fread(&header->proxRRN, sizeof(int), 1, btreeindex);
+  fread(&header->nroNos, sizeof(int), 1, btreeindex);
+}
+
 // Pega as chaves de um nó e transforma em uma array
 void arrayDeChaves(int *array, const BTreeNode *node) {
   for(int i = 0; i < MAX_CHAVES; i++) {
