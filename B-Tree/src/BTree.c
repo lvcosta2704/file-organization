@@ -34,7 +34,7 @@ BTreeNode *criarNo() {
   // Inicializa os indices como -1
   for (int i = 0; i < MAX_CHAVES; i++) {
     node->indice[i].codEstacao = -1;
-    node->indice[i].RRN = -1;
+    node->indice[i].offset = -1;
   }
 
   // Aloca memoria para a referencia para os outros nós
@@ -52,6 +52,45 @@ BTreeNode *criarNo() {
   return node;
 }
 
+void liberaNo(BTreeNode **node) {
+  if(!node || !(*node)) {
+    printf("No NULL.\n");
+    return;
+  }
+
+  free((*node)->indice);
+  free((*node)->ponteiroNo);
+
+  free(*node);
+}
+
+// Funcao que imprime um nó, util para debuggar
+void imprimeNo(const BTreeNode node) {
+  printf("No atual: ");
+
+  printf("[%c][%d][%d][%d]--", node.removido, node.proximo, node.tipoNo, node.nroChaves);
+
+  for(int i = 0; i < MAX_CHAVES; i++) {
+    printf("[%d][%u]", node.indice[i].codEstacao, node.indice[i].offset);
+  }
+
+  printf("--");
+
+  for(int i = 0; i < ORDEM; i++) {
+    printf("[%d]", node.ponteiroNo[i]);
+  }
+
+  printf("\n");
+}
+
+void imprimeArray(int *array) {
+    printf("Array de chaves: ");
+    for(int i = 0; i < MAX_CHAVES; i++) {
+        printf("[%d]", array[i]);
+    }
+    printf("\n");
+}
+
 // Lê o nó de determinado RRN do arquivo de índice Arvore-B
 // e armazena na memoria primaria
 void lerNo(FILE *btreeindex, int RRN, BTreeNode *node) {
@@ -59,6 +98,9 @@ void lerNo(FILE *btreeindex, int RRN, BTreeNode *node) {
   if(!btreeindex) {
     printf("O arquivo Arvore-B é NULL.\n");
     return;
+  }
+  if(!node) {
+    printf("O nó é NULL.\n");
   }
 
   // Posiciona a referência para o arquivo no RRN correto
@@ -72,12 +114,14 @@ void lerNo(FILE *btreeindex, int RRN, BTreeNode *node) {
 
   for(int i = 0; i < MAX_CHAVES; i++) {
     fread(&node->indice[i].codEstacao, sizeof(int), 1, btreeindex);
-    fread(&node->indice[i].RRN, sizeof(int), 1, btreeindex);
+    fread(&node->indice[i].offset, sizeof(int), 1, btreeindex);
   }
 
   for(int i = 0; i < ORDEM; i++) {
     fread(&node->ponteiroNo[i], sizeof(int), 1, btreeindex);
   }
+
+  imprimeNo(*node);
 }
 
 void lerCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header) {
@@ -103,14 +147,14 @@ void arrayDeChaves(int *array, const BTreeNode *node) {
 }
 
 // Retorna 1 se encontrou e 0 se nao encontrou
-int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS) {
+int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS, int *FOUND_OFFSET) {
   // Se o RRN é -1, para
   if(RRN == -1) {
     return NAO_ENCONTROU;
   }
   else {
     // Lê o nó de RRN especificado na memoria primaria
-    BTreeNode *node;
+    BTreeNode *node = criarNo();
     lerNo(btreeindex, RRN, node);
 
     // Procura pela chave no nó e armazena em uma variável a posicao em que ocorre
@@ -120,20 +164,36 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
     // SUB-ROTINA: criar uma array de chaves
     int array[MAX_CHAVES];
     arrayDeChaves(array, node); // OBS: a array sempre está ordenada
+    
+    imprimeArray(array);
                                 
     // SUB-ROTINA: realizar busca binaria na array de chaves
-    binarySearch(chave, array, 0, MAX_CHAVES, prox);
+    pos = binarySearch(chave, array, 0, MAX_CHAVES, prox);
+
+    printf("pos: %d\n", pos);
 
     // Se a chave foi encontrada
-    if(pos != -1) {
-      *FOUND_RRN = RRN; // Salva o RRN
-      *FOUND_POS = pos; // Salva a posicao
+    if(pos != -1) { 
+      if(FOUND_RRN != NULL) {
+        *FOUND_RRN = RRN; // Salva o RRN da pagina, se pedido
+      }
+      if(FOUND_POS != NULL) {
+        *FOUND_POS = pos; // Salva a posicao, se pedido
+      }
+      if(FOUND_OFFSET != NULL) {
+        *FOUND_OFFSET = node->indice[pos].offset; // Salva o offset no arquivo de dados, se pedido
+      }
+
+      liberaNo(&node);
+      
       return ENCONTROU;
     }
     // Se a chave nao foi encontrada
     else {
       // Realiza a busca no próximo no, recursivamente
-      return buscaArvoreB(btreeindex, node->ponteiroNo[*prox], chave, FOUND_RRN, FOUND_POS);
+      int proxRRN = node->ponteiroNo[*prox];
+      liberaNo(&node);
+      return buscaArvoreB(btreeindex, proxRRN, chave, FOUND_RRN, FOUND_POS, FOUND_OFFSET);
     }
   }
 }
