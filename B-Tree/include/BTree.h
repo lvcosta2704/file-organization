@@ -8,6 +8,9 @@
 #define TAM_CABECALHO_BTREE 17
 #define TAM_NO 13 + 8 * MAX_CHAVES + 4 * ORDEM
 
+#define ENCONTROU 1
+#define NAO_ENCONTROU 0
+
 // === STRUCTS ===
 
 // Struct para armazenar a chave e seu respectivo RRN
@@ -37,6 +40,7 @@ typedef struct {
 // === FUNCOES ===
 BTreeNode *criarNo();
 void lerNo(FILE *btreeindex, int RRN, BTreeNode *node);
-int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int FOUND_RRN, int FOUND_POS);
+void arrayDeChaves(int *array, const BTreeNode *node);
+int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS);
 
 #endif
