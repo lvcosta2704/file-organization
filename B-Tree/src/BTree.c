@@ -51,6 +51,35 @@ BTreeNode *criarNo() {
   return node;
 }
 
-void buscaArvoreB() {
-  
+// Lê o nó de determinado RRN do arquivo de índice Arvore-B
+// e armazena na memoria primaria
+void lerNo(FILE *btreeindex, int RRN, BTreeNode *node) {
+  // Posiciona a referência para o arquivo no RRN correto
+  fseek(btreeindex, TAM_CABECALHO_BTREE + RRN * TAM_NO, SEEK_SET);
+
+  // Lê cada um dos campos
+  fread(&node->removido, sizeof(char), 1, btreeindex);
+  fread(&node->proximo, sizeof(int), 1, btreeindex);
+  fread(&node->tipoNo, sizeof(int), 1, btreeindex);
+  fread(&node->nroChaves, sizeof(int), 1, btreeindex);
+
+  for(int i = 0; i < MAX_CHAVES; i++) {
+    fread(&node->indice[i].codEstacao, sizeof(int), 1, btreeindex);
+    fread(&node->indice[i].RRN, sizeof(int), 1, btreeindex);
+  }
+
+  for(int i = 0; i < ORDEM; i++) {
+    fread(&node->ponteiroNo[i], sizeof(int), 1, btreeindex);
+  }
+}
+
+int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int FOUND_RRN, int FOUND_POS) {
+  // Se o RRN é -1, para
+  if(RRN == -1) {
+    return -1;
+  }
+  else {
+    BTreeNode *node;
+    lerNo(btreeindex, RRN, node);
+  }
 }

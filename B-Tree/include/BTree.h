@@ -5,7 +5,7 @@
 
 #define ORDEM 4
 #define MAX_CHAVES ORDEM - 1
-#define TAM_CABECALHO 17
+#define TAM_CABECALHO_BTREE 17
 #define TAM_NO 13 + 8 * MAX_CHAVES + 4 * ORDEM
 
 // === STRUCTS ===
@@ -36,5 +36,7 @@ typedef struct {
 
 // === FUNCOES ===
 BTreeNode *criarNo();
+void lerNo(FILE *btreeindex, int RRN, BTreeNode *node);
+int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int FOUND_RRN, int FOUND_POS);
 
 #endif
