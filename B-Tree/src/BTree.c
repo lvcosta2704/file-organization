@@ -114,7 +114,7 @@ void escreverNo(FILE *btreeindex, int RRN, const BTreeNode *node) {
     fwrite(&node->ponteiroNo[i], sizeof(int), 1, btreeindex);
   }
 
-  imprimeNo(*node);
+  //imprimeNo(*node);
 }
 
 
@@ -148,7 +148,7 @@ void lerNo(FILE *btreeindex, int RRN, BTreeNode *node) {
     fread(&node->ponteiroNo[i], sizeof(int), 1, btreeindex);
   }
 
-  imprimeNo(*node);
+  //imprimeNo(*node);
 }
 
 
@@ -184,6 +184,27 @@ void arrayDeChaves(int *array, const BTreeNode *node) {
   }
 }
 
+int removerChaveNo(BTreeNode *node, int pos) {
+  for (int i = pos; i < node->nroChaves - 1; i++)
+  {
+    node->indice[i] = node->indice[i+1];
+  }
+
+  node->indice[node->nroChaves - 1].codEstacao = -1;
+  node->indice[node->nroChaves - 1].offset = -1;
+  node->nroChaves--;
+
+  return 1;
+}
+
+int ehFolha(const BTreeNode *node) {
+  for (int i = 0; i < ORDEM; i++)
+  {
+    if (node->ponteiroNo[i] != -1) return 0;
+  }
+  return 1;
+}
+
 // Retorna 1 se encontrou e 0 se nao encontrou
 int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS, int *FOUND_OFFSET) {
   // Se o RRN é -1, para
@@ -203,12 +224,12 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
     int array[MAX_CHAVES];
     arrayDeChaves(array, node); // OBS: a array sempre está ordenada
     
-    imprimeArray(array);
+    //imprimeArray(array);
                                 
     // SUB-ROTINA: realizar busca binaria na array de chaves
     pos = binarySearch(chave, array, 0, MAX_CHAVES, &prox);
 
-    printf("pos: %d\n", pos);
+    //printf("pos: %d\n", pos);
 
     // Se a chave foi encontrada
     if(pos != -1) { 
@@ -233,5 +254,18 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
       liberaNo(&node);
       return buscaArvoreB(btreeindex, proxRRN, chave, FOUND_RRN, FOUND_POS, FOUND_OFFSET);
     }
+  }
+}
+
+int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posChave, int chave) {
+  BTreeNode *node = criarNo();
+  lerNo(btreeindex, rrnAtual, node);
+
+  if (ehFolha(node)) {
+    removerChaveNo(node, posChave);
+
+    escreverNo(btreeindex, rrnAtual, node);
+
+    
   }
 }

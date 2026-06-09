@@ -54,16 +54,16 @@ void busca(char *binName, char *btreeName, int N) {
     if(filtro.codEstacao != -2) {
       // Busca pelo RRN do codEstacao do arquivo de dados, usando o arquivo de indice Arvore-B
       int OFFSET;
-      printf("No raiz: %d\n", cabBTree.noRaiz);
+      //printf("No raiz: %d\n", cabBTree.noRaiz);
 
       if(!(buscaArvoreB(btreeindex, cabBTree.noRaiz, filtro.codEstacao, NULL, NULL, &OFFSET))) {
         printf("codEstacao nao encontrado.\n");
       }
 
-      printf("Breakpoint. \n");
+      //printf("Breakpoint. \n");
 
-      printf("%d\n", filtro.codEstacao);
-      printf("%d\n", cabBTree.noRaiz);
+      //printf("%d\n", filtro.codEstacao);
+      //printf("%d\n", cabBTree.noRaiz);
       
       // Realiza a busca no registro de RRN especificado
       Registro reg;
