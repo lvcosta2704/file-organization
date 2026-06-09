@@ -212,7 +212,7 @@ void remocao(char *binName, char *btreeName, int N) {
   BTreeHeader cabBTree;
   lerCabecalhoArvoreB(btreeindex, &cabBTree);
 
-  if (cabBin.status == "0" || cabBTree.status == "0") {
+  if (cabBin.status == '0' || cabBTree.status == '0') {
     printf("Arquivo inconsistente.\n");
     fclose(fileBin);
     fclose(btreeindex);
@@ -258,20 +258,20 @@ void remocao(char *binName, char *btreeName, int N) {
 
     apagarRegistro(fileBin, &reg, &cabBin, (foundOffset - TAM_CABECALHO)/ TAM_REGISTRO);
 
-    removerArvoreB(
+    /*removerArvoreB(
       btreeindex,
       &cabBTree,
       foundRRN,
       foundPos,
       filtro.codEstacao
-    );
+    );*/
   }
 
   cabBin.status = '1';
   cabBTree.status = '1';
 
   escreverCabecalho(fileBin, cabBin);
-  escreverCabecalhoArvoreB(btreeindex, cabBTree);
+  escreverCabecalhoArvoreB(btreeindex, &cabBTree);
   
   fclose(fileBin);
   fclose(btreeindex);
