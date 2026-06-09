@@ -91,6 +91,33 @@ void imprimeArray(int *array) {
     printf("\n");
 }
 
+
+void escreverNo(FILE *btreeindex, int RRN, const BTreeNode *node) {
+  // Verifica se o arquivo nao é NULL, por questoes de seguranca
+  if (!btreeindex || !node) return;
+
+  // Posiciona a referência para o arquivo no RRN correto
+  fseek(btreeindex, TAM_CABECALHO_BTREE + RRN * TAM_NO, SEEK_SET);
+
+  // Lê cada um dos campos
+  fwrite(&node->removido, sizeof(char), 1, btreeindex);
+  fwrite(&node->proximo, sizeof(int), 1, btreeindex);
+  fwrite(&node->tipoNo, sizeof(int), 1, btreeindex);
+  fwrite(&node->nroChaves, sizeof(int), 1, btreeindex);
+
+  for(int i = 0; i < MAX_CHAVES; i++) {
+    fwrite(&node->indice[i].codEstacao, sizeof(int), 1, btreeindex);
+    fwrite(&node->indice[i].offset, sizeof(int), 1, btreeindex);
+  }
+
+  for(int i = 0; i < ORDEM; i++) {
+    fwrite(&node->ponteiroNo[i], sizeof(int), 1, btreeindex);
+  }
+
+  imprimeNo(*node);
+}
+
+
 // Lê o nó de determinado RRN do arquivo de índice Arvore-B
 // e armazena na memoria primaria
 void lerNo(FILE *btreeindex, int RRN, BTreeNode *node) {
@@ -122,6 +149,17 @@ void lerNo(FILE *btreeindex, int RRN, BTreeNode *node) {
   }
 
   imprimeNo(*node);
+}
+
+
+void escreverCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header) {
+  fseek(btreeindex, 0, SEEK_SET);
+
+  fwrite(&header->status, sizeof(char), 1, btreeindex);
+  fwrite(&header->noRaiz, sizeof(int), 1, btreeindex);
+  fwrite(&header->topo, sizeof(int), 1, btreeindex);
+  fwrite(&header->proxRRN, sizeof(int), 1, btreeindex);
+  fwrite(&header->nroNos, sizeof(int), 1, btreeindex);
 }
 
 void lerCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header) {
@@ -159,7 +197,7 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
 
     // Procura pela chave no nó e armazena em uma variável a posicao em que ocorre
     int pos; 
-    int *prox;
+    int prox;
 
     // SUB-ROTINA: criar uma array de chaves
     int array[MAX_CHAVES];
@@ -168,7 +206,7 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
     imprimeArray(array);
                                 
     // SUB-ROTINA: realizar busca binaria na array de chaves
-    pos = binarySearch(chave, array, 0, MAX_CHAVES, prox);
+    pos = binarySearch(chave, array, 0, MAX_CHAVES, &prox);
 
     printf("pos: %d\n", pos);
 
@@ -191,7 +229,7 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
     // Se a chave nao foi encontrada
     else {
       // Realiza a busca no próximo no, recursivamente
-      int proxRRN = node->ponteiroNo[*prox];
+      int proxRRN = node->ponteiroNo[prox];
       liberaNo(&node);
       return buscaArvoreB(btreeindex, proxRRN, chave, FOUND_RRN, FOUND_POS, FOUND_OFFSET);
     }

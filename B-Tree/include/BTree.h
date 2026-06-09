@@ -45,6 +45,8 @@ void imprimeArray(int *array);
 void imprimeNo(const BTreeNode node);
 void arrayDeChaves(int *array, const BTreeNode *node);
 void lerCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header);
+void escreverCabecalhoArvoreB(FILE *btreeindex, BTreeHeader header);
 int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS, int *FOUND_DATA_RRN);
+int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posChave, int chave);
 
 #endif

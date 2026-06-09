@@ -191,3 +191,88 @@ void busca(char *binName, char *btreeName, int N) {
   fclose(fileBin);
   fclose(btreeindex);
 }
+
+
+void remocao(char *binName, char *btreeName, int N) {
+  FILE *fileBin = fopen(binName, "rb+");
+  if (!fileBin) {
+    printf("Falha no processamento de dados\n");
+    return;
+  }
+
+  FILE *btreeindex = fopen(btreeName, "rb+");
+  if (!btreeindex) {
+    printf("Falha no processameto do arquivo.\n");
+    return;
+  }
+
+  Cabecalho cabBin;
+  lerCabecalho(fileBin, &cabBin);
+
+  BTreeHeader cabBTree;
+  lerCabecalhoArvoreB(btreeindex, &cabBTree);
+
+  if (cabBin.status == "0" || cabBTree.status == "0") {
+    printf("Arquivo inconsistente.\n");
+    fclose(fileBin);
+    fclose(btreeindex);
+    return;
+  }
+
+  for (int i = 0; i < N; i++)
+  {
+    Busca filtro = inputFiltro();
+
+    if (filtro.codEstacao == -2){
+      continue;
+    }
+
+    int foundRRN = -1;
+    int foundPos = -1;
+    int foundOffset = -1;
+
+    int encontrou = buscaArvoreB(
+      btreeindex,
+      cabBTree.noRaiz,
+      filtro.codEstacao,
+      &foundRRN,
+      &foundPos,
+      &foundOffset
+    );
+
+    if (!encontrou) {
+      printf("Registro Inexistente.\n");
+      continue;
+    }
+
+    Registro reg;
+    fseek(fileBin, foundOffset, SEEK_SET);
+    fread(&reg.removido, sizeof(char), 1, fileBin);
+
+    if (reg.removido == '1') {
+      printf("Registro inexistente.\n");
+      continue;
+    }
+
+    lerRegistro(fileBin, &reg);
+
+    apagarRegistro(fileBin, &reg, &cabBin, (foundOffset - TAM_CABECALHO)/ TAM_REGISTRO);
+
+    removerArvoreB(
+      btreeindex,
+      &cabBTree,
+      foundRRN,
+      foundPos,
+      filtro.codEstacao
+    );
+  }
+
+  cabBin.status = '1';
+  cabBTree.status = '1';
+
+  escreverCabecalho(fileBin, cabBin);
+  escreverCabecalhoArvoreB(btreeindex, cabBTree);
+  
+  fclose(fileBin);
+  fclose(btreeindex);
+}
