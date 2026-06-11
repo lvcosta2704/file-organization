@@ -115,7 +115,7 @@ void busca(char *binName, char *btreeName, int N) {
             else printf("NULO ");
             
             // 8. codEstIntegra (Último campo tem a quebra de linha \n)
-            if (reg.codEstIntegra != -1) printf("%d\n", reg.codEstIntegra); 
+            if (reg.codEstIntegra != -1) printf("%d\n\n", reg.codEstIntegra); 
             else printf("NULO\n\n");
         }
       }
@@ -174,7 +174,7 @@ void busca(char *binName, char *btreeName, int N) {
               
               // 8. codEstIntegra (Último campo tem a quebra de linha \n)
               if (reg.codEstIntegra != -1) printf("%d\n", reg.codEstIntegra); 
-              else printf("NULO\n\n");
+              else printf("NULO\n");
 
               encontrouAlgum = 1;
             }

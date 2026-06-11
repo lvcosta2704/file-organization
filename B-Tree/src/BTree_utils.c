@@ -45,21 +45,20 @@ void sort(int *array) {
 
 // Realiza busca binaria
 int binarySearch(int chave, int array[], int inicio, int fim, int *prox) {
-  int pos = (inicio + fim) / 2;
-
-  if(array[pos] == chave)
-    return pos;
-  else if(inicio >= fim) {
-    *prox = inicio; // Salva a posicao em que a chave deveria estar
-    return -1; // Nao encontrou
-  }
-  else
-    if(array[pos] < chave) {
-      return binarySearch(chave, array, pos+1, fim, prox);
+    if (inicio > fim) {
+        *prox = inicio;   // posição de inserção
+        return -1;
     }
-    else {
-      return binarySearch(chave, array, inicio, pos-1, prox);
+
+    int pos = (inicio + fim) / 2;
+
+    if (array[pos] == chave) {
+        return pos;
+    }
+
+    if (array[pos] < chave) {
+        return binarySearch(chave, array, pos + 1, fim, prox);
+    } else {
+        return binarySearch(chave, array, inicio, pos - 1, prox);
     }
 }
-
-
