@@ -242,7 +242,6 @@ void remocao(char *binName, char *btreeName, int N) {
     );
 
     if (!encontrou) {
-      printf("Registro Inexistente.\n");
       continue;
     }
 
@@ -251,7 +250,6 @@ void remocao(char *binName, char *btreeName, int N) {
     fread(&reg.removido, sizeof(char), 1, fileBin);
 
     if (reg.removido == '1') {
-      printf("Registro inexistente.\n");
       continue;
     }
 
@@ -279,4 +277,6 @@ void remocao(char *binName, char *btreeName, int N) {
   fclose(fileBin);
   fclose(btreeindex);
 
+  BinarioNaTela(binName);
+  BinarioNaTela(btreeName);
 }
