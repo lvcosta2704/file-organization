@@ -7,6 +7,7 @@
 
 // === ARVORE-B ===
 
+// ----- ABRIR E FECHA NÓ ------
 // Cria um nó vazio
 // Aloca memória para a criacao do no e inicializa seus campos
 // conforme especificado
@@ -64,33 +65,7 @@ void liberaNo(BTreeNode **node) {
   free(*node);
 }
 
-// Funcao que imprime um nó, util para debuggar
-void imprimeNo(const BTreeNode node) {
-  printf("No atual: ");
-
-  printf("[%c][%d][%d][%d]--", node.removido, node.proximo, node.tipoNo, node.nroChaves);
-
-  for(int i = 0; i < MAX_CHAVES; i++) {
-    printf("[%d][%u]", node.indice[i].codEstacao, node.indice[i].offset);
-  }
-
-  printf("--");
-
-  for(int i = 0; i < ORDEM; i++) {
-    printf("[%d]", node.ponteiroNo[i]);
-  }
-
-  printf("\n");
-}
-
-void imprimeArray(int *array) {
-    printf("Array de chaves: ");
-    for(int i = 0; i < MAX_CHAVES; i++) {
-        printf("[%d]", array[i]);
-    }
-    printf("\n");
-}
-
+// ----- IN OUT NÓ E CABEÇALHO ------
 
 void escreverNo(FILE *btreeindex, int RRN, const BTreeNode *node) {
   // Verifica se o arquivo nao é NULL, por questoes de seguranca
@@ -171,6 +146,37 @@ void lerCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header) {
   fread(&header->proxRRN, sizeof(int), 1, btreeindex);
   fread(&header->nroNos, sizeof(int), 1, btreeindex);
 }
+// ----- IMPRESSAO E DEGUB ------
+
+// Funcao que imprime um nó, util para debuggar
+void imprimeNo(const BTreeNode node) {
+  printf("No atual: ");
+
+  printf("[%c][%d][%d][%d]--", node.removido, node.proximo, node.tipoNo, node.nroChaves);
+
+  for(int i = 0; i < MAX_CHAVES; i++) {
+    printf("[%d][%u]", node.indice[i].codEstacao, node.indice[i].offset);
+  }
+
+  printf("--");
+
+  for(int i = 0; i < ORDEM; i++) {
+    printf("[%d]", node.ponteiroNo[i]);
+  }
+
+  printf("\n");
+}
+
+void imprimeArray(int *array) {
+    printf("Array de chaves: ");
+    for(int i = 0; i < MAX_CHAVES; i++) {
+        printf("[%d]", array[i]);
+    }
+    printf("\n");
+}
+
+
+
 
 // Pega as chaves de um nó e transforma em uma array
 void arrayDeChaves(int *array, const BTreeNode *node) {
@@ -183,6 +189,9 @@ void arrayDeChaves(int *array, const BTreeNode *node) {
     }
   }
 }
+
+// ----- UTILS DA ARVORE ------
+
 
 int removerChaveNo(BTreeNode *node, int pos) {
   for (int i = pos; i < node->nroChaves - 1; i++)
@@ -197,13 +206,24 @@ int removerChaveNo(BTreeNode *node, int pos) {
   return 1;
 }
 
+int minChaves() {
+  return ((ORDEM + 1) / 2) - 1; // para ORDEM=4, min = 1
+}
+
 int ehFolha(const BTreeNode *node) {
-  for (int i = 0; i < ORDEM; i++)
-  {
-    if (node->ponteiroNo[i] != -1) return 0;
+  if (node == NULL) return 0;
+
+  for (int i = 0; i < ORDEM; i++) {
+    if (node->ponteiroNo[i] != -1) {
+      return 0;
+    }
   }
   return 1;
 }
+
+
+
+// ----- BUSCA ------
 
 // Retorna 1 se encontrou e 0 se nao encontrou
 int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS, int *FOUND_OFFSET) {
@@ -257,15 +277,337 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
   }
 }
 
-int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posChave, int chave) {
+
+// ----- REMOCAO ------
+
+int liberarPaginaBTree(FILE *btreeindex, BTreeHeader *header, int rrnLiberado) {
+  BTreeNode *node = criarNo();
+  lerNo(btreeindex, rrnLiberado, node);
+
+  node->removido = '1';
+  node->proximo = header->topo;
+
+  header->topo = rrnLiberado;
+  escreverCabecalhoArvoreB(btreeindex, header);
+  escreverNo(btreeindex, rrnLiberado, node);
+
+  liberaNo(&node);
+  return 1;
+}
+
+int buscarPai(FILE *btreeindex, int rrnAtual, int rrnFilho, int *rrnPai, int *posFilhoNoPai) {
+  if (rrnAtual == -1) return 0;
+
   BTreeNode *node = criarNo();
   lerNo(btreeindex, rrnAtual, node);
 
-  if (ehFolha(node)) {
-    removerChaveNo(node, posChave);
-
-    escreverNo(btreeindex, rrnAtual, node);
-
-    
+  for (int i = 0; i < ORDEM; i++) {
+    if (node->ponteiroNo[i] == rrnFilho) {
+      if (rrnPai) {
+        *rrnPai = rrnAtual;
+      }
+      if (posFilhoNoPai) {
+        *posFilhoNoPai = i;
+      } 
+      liberaNo(&node);
+      return 1;
+    }
   }
+
+  for (int i = 0; i < ORDEM; i++) {
+    if (node->ponteiroNo[i] != -1) {
+      if (buscarPai(btreeindex, node->ponteiroNo[i], rrnFilho, rrnPai, posFilhoNoPai)) {
+        liberaNo(&node);
+        return 1;
+      }
+    }
+  }
+
+  liberaNo(&node);
+  return 0;
 }
+
+int emprestarDireita(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho) {
+  BTreeNode *pai = criarNo();
+  lerNo(btreeindex, rrnPai, pai);
+
+  if (posFilho >= pai->nroChaves) {
+    liberaNo(&pai);
+    return 0;
+  }
+
+  int rrnDir = pai->ponteiroNo[posFilho + 1];
+  if (rrnDir == -1) {
+    liberaNo(&pai);
+    return 0;
+  }
+
+  BTreeNode *filho = criarNo();
+  BTreeNode *dir = criarNo();
+  lerNo(btreeindex, rrnFilho, filho);
+  lerNo(btreeindex, rrnDir, dir);
+
+  if (dir->nroChaves <= minChaves()) {
+    liberaNo(&pai);
+    liberaNo(&filho);
+    liberaNo(&dir);
+    return 0;
+  }
+
+  filho->indice[filho->nroChaves] = pai->indice[posFilho];
+
+  if (!ehFolha(filho)) {
+    filho->ponteiroNo[filho->nroChaves + 1] = dir->ponteiroNo[0];
+  }
+
+  pai->indice[posFilho] = dir->indice[0];
+
+  for (int i = 0; i < dir->nroChaves - 1; i++) {
+    dir->indice[i] = dir->indice[i + 1];
+  }
+  dir->indice[dir->nroChaves - 1].codEstacao = -1;
+  dir->indice[dir->nroChaves - 1].offset = -1;
+
+  if (!ehFolha(dir)) {
+    for (int i = 0; i < dir->nroChaves; i++) {
+      dir->ponteiroNo[i] = dir->ponteiroNo[i + 1];
+    }
+    dir->ponteiroNo[dir->nroChaves] = -1;
+  }
+
+  dir->nroChaves--;
+  filho->nroChaves++;
+
+  escreverNo(btreeindex, rrnFilho, filho);
+  escreverNo(btreeindex, rrnDir, dir);
+  escreverNo(btreeindex, rrnPai, pai);
+
+  liberaNo(&pai);
+  liberaNo(&filho);
+  liberaNo(&dir);
+  return 1;
+}
+
+int emprestarEsquerda(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho) {
+  if (posFilho == 0) return 0;
+
+  BTreeNode *pai = criarNo();
+  lerNo(btreeindex, rrnPai, pai);
+
+  int rrnEsq = pai->ponteiroNo[posFilho - 1];
+  if (rrnEsq == -1) {
+    liberaNo(&pai);
+    return 0;
+  }
+
+  BTreeNode *filho = criarNo();
+  BTreeNode *esq = criarNo();
+  lerNo(btreeindex, rrnFilho, filho);
+  lerNo(btreeindex, rrnEsq, esq);
+
+  if (esq->nroChaves <= minChaves()) {
+    liberaNo(&pai);
+    liberaNo(&filho);
+    liberaNo(&esq);
+    return 0;
+  }
+
+  for (int i = filho->nroChaves; i > 0; i--) {
+    filho->indice[i] = filho->indice[i - 1];
+  }
+
+  filho->indice[0] = pai->indice[posFilho - 1];
+  pai->indice[posFilho - 1] = esq->indice[esq->nroChaves - 1];
+
+  if (!ehFolha(filho)) {
+    for (int i = filho->nroChaves + 1; i > 0; i--) {
+      filho->ponteiroNo[i] = filho->ponteiroNo[i - 1];
+    }
+    filho->ponteiroNo[0] = esq->ponteiroNo[esq->nroChaves];
+    esq->ponteiroNo[esq->nroChaves] = -1;
+  }
+
+  esq->indice[esq->nroChaves - 1].codEstacao = -1;
+  esq->indice[esq->nroChaves - 1].offset = -1;
+  esq->nroChaves--;
+  filho->nroChaves++;
+
+  escreverNo(btreeindex, rrnEsq, esq);
+  escreverNo(btreeindex, rrnFilho, filho);
+  escreverNo(btreeindex, rrnPai, pai);
+
+  liberaNo(&pai);
+  liberaNo(&filho);
+  liberaNo(&esq);
+  return 1;
+}
+
+int fundirComIrmaoEsq(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho) {
+  if (posFilho == 0) return 0;
+
+  BTreeNode *pai = criarNo();
+  lerNo(btreeindex, rrnPai, pai);
+
+  int rrnEsq = pai->ponteiroNo[posFilho - 1];
+  BTreeNode *esq = criarNo();
+  BTreeNode *filho = criarNo();
+  lerNo(btreeindex, rrnEsq, esq);
+  lerNo(btreeindex, rrnFilho, filho);
+
+  esq->indice[esq->nroChaves] = pai->indice[posFilho - 1];
+
+  for (int i = 0; i < filho->nroChaves; i++) {
+    esq->indice[esq->nroChaves + 1 + i] = filho->indice[i];
+  }
+
+  if (!ehFolha(esq)) {
+    for (int i = 0; i <= filho->nroChaves; i++) {
+      esq->ponteiroNo[esq->nroChaves + 1 + i] = filho->ponteiroNo[i];
+    }
+  }
+
+  esq->nroChaves += 1 + filho->nroChaves;
+
+  for (int i = posFilho - 1; i < pai->nroChaves - 1; i++) {
+    pai->indice[i] = pai->indice[i + 1];
+  }
+
+  for (int i = posFilho; i < ORDEM - 1; i++) {
+    pai->ponteiroNo[i] = pai->ponteiroNo[i + 1];
+  }
+
+  pai->ponteiroNo[ORDEM - 1] = -1;
+  pai->indice[pai->nroChaves - 1].codEstacao = -1;
+  pai->indice[pai->nroChaves - 1].offset = -1;
+  pai->nroChaves--;
+
+  escreverNo(btreeindex, rrnEsq, esq);
+  escreverNo(btreeindex, rrnPai, pai);
+
+  liberarPaginaBTree(btreeindex, header, rrnFilho);
+
+  liberaNo(&pai);
+  liberaNo(&esq);
+  liberaNo(&filho);
+  return 1;
+}
+
+int fundirComIrmaoDir(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho) {
+  BTreeNode *pai = criarNo();
+  lerNo(btreeindex, rrnPai, pai);
+
+  if (posFilho >= pai->nroChaves) {
+    liberaNo(&pai);
+    return 0;
+  }
+
+  int rrnDir = pai->ponteiroNo[posFilho + 1];
+  BTreeNode *filho = criarNo();
+  BTreeNode *dir = criarNo();
+  lerNo(btreeindex, rrnFilho, filho);
+  lerNo(btreeindex, rrnDir, dir);
+
+  filho->indice[filho->nroChaves] = pai->indice[posFilho];
+
+  for (int i = 0; i < dir->nroChaves; i++) {
+    filho->indice[filho->nroChaves + 1 + i] = dir->indice[i];
+  }
+
+  if (!ehFolha(filho)) {
+    for (int i = 0; i <= dir->nroChaves; i++) {
+      filho->ponteiroNo[filho->nroChaves + 1 + i] = dir->ponteiroNo[i];
+    }
+  }
+
+  filho->nroChaves += 1 + dir->nroChaves;
+
+  for (int i = posFilho; i < pai->nroChaves - 1; i++) {
+    pai->indice[i] = pai->indice[i + 1];
+  }
+
+  for (int i = posFilho + 1; i < ORDEM - 1; i++) {
+    pai->ponteiroNo[i] = pai->ponteiroNo[i + 1];
+  }
+
+  pai->ponteiroNo[ORDEM - 1] = -1;
+  pai->indice[pai->nroChaves - 1].codEstacao = -1;
+  pai->indice[pai->nroChaves - 1].offset = -1;
+  pai->nroChaves--;
+
+  escreverNo(btreeindex, rrnFilho, filho);
+  escreverNo(btreeindex, rrnPai, pai);
+
+  liberarPaginaBTree(btreeindex, header, rrnDir);
+
+  liberaNo(&pai);
+  liberaNo(&filho);
+  liberaNo(&dir);
+  return 1;
+}
+
+int tratarUnderflow(FILE *btreeindex, BTreeHeader *header, int rrnAtual) {
+  if (rrnAtual == header->noRaiz) return 1;
+
+  int rrnPai = -1;
+  int posFilho = -1;
+
+  if (!buscarPai(btreeindex, header->noRaiz, rrnAtual, &rrnPai, &posFilho)) {
+    return 0;
+  }
+
+  if (emprestarDireita(btreeindex, header, rrnPai, posFilho, rrnAtual)) return 1;
+  if (emprestarEsquerda(btreeindex, header, rrnPai, posFilho, rrnAtual)) return 1;
+
+  if (posFilho > 0) {
+    return fundirComIrmaoEsq(btreeindex, header, rrnPai, posFilho, rrnAtual);
+  }
+
+  return fundirComIrmaoDir(btreeindex, header, rrnPai, posFilho, rrnAtual);
+}
+
+
+int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posChave, int chave) {
+  if (!btreeindex || !header || rrnAtual == -1) return 0;
+
+  BTreeNode *node = criarNo();
+  if (!node) return 0;
+
+  lerNo(btreeindex, rrnAtual, node);
+
+  // Protecao basica de indice
+  if (posChave < 0 || posChave >= node->nroChaves) {
+    liberaNo(&node);
+    return 0;
+  }
+
+  // Versao minima: remove somente quando a chave esta em folha.
+  // (Caso interno com sucessora voce implementa em seguida.)
+  if (!ehFolha(node)) {
+    liberaNo(&node);
+    return 0;
+  }
+
+  removerChaveNo(node, posChave);
+  escreverNo(btreeindex, rrnAtual, node);
+
+  // Caso especial: raiz
+  if (rrnAtual == header->noRaiz) {
+    if (node->nroChaves == 0) {
+      header->noRaiz = -1;
+      escreverCabecalhoArvoreB(btreeindex, header);
+    }
+    liberaNo(&node);
+    return 1;
+  }
+
+  // Underflow: para ORDEM=4, acontece quando ficou com 0 chaves
+  if (node->nroChaves < minChaves()) {
+    liberaNo(&node);
+    return tratarUnderflow(btreeindex, header, rrnAtual);
+  }
+
+  liberaNo(&node);
+  return 1;
+}
+
+

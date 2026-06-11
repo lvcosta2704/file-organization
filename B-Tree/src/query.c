@@ -196,7 +196,7 @@ void busca(char *binName, char *btreeName, int N) {
 void remocao(char *binName, char *btreeName, int N) {
   FILE *fileBin = fopen(binName, "rb+");
   if (!fileBin) {
-    printf("Falha no processamento de dados\n");
+    printf("Falha no processamento de caralho\n");
     return;
   }
 
@@ -256,15 +256,17 @@ void remocao(char *binName, char *btreeName, int N) {
 
     lerRegistro(fileBin, &reg);
 
-    apagarRegistro(fileBin, &reg, &cabBin, (foundOffset - TAM_CABECALHO)/ TAM_REGISTRO);
+    int rrnDados = (foundOffset - TAM_CABECALHO) / TAM_REGISTRO;
+    apagarRegistro(fileBin, &reg, &cabBin, rrnDados);
 
-    /*removerArvoreB(
+    // Remove também a chave da árvore-B
+    removerArvoreB(
       btreeindex,
       &cabBTree,
       foundRRN,
       foundPos,
       filtro.codEstacao
-    );*/
+    );
   }
 
   cabBin.status = '1';
@@ -275,4 +277,5 @@ void remocao(char *binName, char *btreeName, int N) {
   
   fclose(fileBin);
   fclose(btreeindex);
+
 }

@@ -25,17 +25,17 @@ int main() {
       break;
     }
     case 9: {
-      // Realiza n remocoes usando o arquivo de indice arvore B
-      int n;
-      scanf("%s %s %d", inputfile, btreeindex, &n);
-  //    remocao(inputfile, btreeindex, n);
-      break;
-    }
-    case 10: {
       // Realiza n insercoes usando o arquivo de indice arvore B
       int n;
       scanf("%s %s %d", inputfile, btreeindex, &n);
   //    insercao(inputfile, btreeindex, n);
+      break;
+    }
+    case 10: {
+      // Realiza n remocoes usando o arquivo de indice arvore B
+      int n;
+      scanf("%s %s %d", inputfile, btreeindex, &n);
+      remocao(inputfile, btreeindex, n);
       break;
     }
     default:

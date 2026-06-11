@@ -49,4 +49,19 @@ void escreverCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header);
 int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS, int *FOUND_DATA_RRN);
 int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posChave, int chave);
 
+// -------- FUNCOES AUXILIARES DA REMOCAO -------
+
+
+int tratarUnderflow(FILE *btreeindex, BTreeHeader *header, int rrnAtual);
+int minChaves();
+int removerChaveNo(BTreeNode *node, int pos);
+int ehFolha(const BTreeNode *node);
+int liberarPaginaBTree(FILE *btreeindex, BTreeHeader *header, int rrnLiberado);
+int buscarPai(FILE *btreeindex, int rrnAtual, int rrnFilho, int *rrnPai, int *posFilhoNoPai);
+int emprestarDireita(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho);
+int emprestarEsquerda(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho);
+int fundirComIrmaoEsq(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho);
+int fundirComIrmaoDir(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho);
+
+
 #endif

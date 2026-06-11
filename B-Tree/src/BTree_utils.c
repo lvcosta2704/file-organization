@@ -62,3 +62,4 @@ int binarySearch(int chave, int array[], int inicio, int fim, int *prox) {
     }
 }
 
+
