@@ -57,7 +57,8 @@ void busca(char *binName, char *btreeName, int N) {
       //printf("No raiz: %d\n", cabBTree.noRaiz);
 
       if(!(buscaArvoreB(btreeindex, cabBTree.noRaiz, filtro.codEstacao, NULL, NULL, &OFFSET))) {
-        printf("codEstacao nao encontrado.\n");
+        printf("Registro inexistente.\n\n"); // Se estiver, nao existe o registro
+        continue;
       }
 
       //printf("Breakpoint. \n");
@@ -74,7 +75,7 @@ void busca(char *binName, char *btreeName, int N) {
       // Verifica se o registro está marcado como logicamente removido
       fread(&reg.removido, sizeof(char), 1, fileBin);
       if(reg.removido == '1') {
-        printf("Registro inexistente.\n"); // Se estiver, nao existe o registro
+        printf("Registro inexistente.\n\n"); // Se estiver, nao existe o registro
         continue; // Realiza a proxima busca
       }
       else { // Se nao,
@@ -115,7 +116,7 @@ void busca(char *binName, char *btreeName, int N) {
             
             // 8. codEstIntegra (Último campo tem a quebra de linha \n)
             if (reg.codEstIntegra != -1) printf("%d\n", reg.codEstIntegra); 
-            else printf("NULO\n");
+            else printf("NULO\n\n");
         }
       }
     }
@@ -173,7 +174,7 @@ void busca(char *binName, char *btreeName, int N) {
               
               // 8. codEstIntegra (Último campo tem a quebra de linha \n)
               if (reg.codEstIntegra != -1) printf("%d\n", reg.codEstIntegra); 
-              else printf("NULO\n");
+              else printf("NULO\n\n");
 
               encontrouAlgum = 1;
             }
