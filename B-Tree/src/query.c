@@ -57,7 +57,8 @@ void busca(char *binName, char *btreeName, int N) {
       //printf("No raiz: %d\n", cabBTree.noRaiz);
 
       if(!(buscaArvoreB(btreeindex, cabBTree.noRaiz, filtro.codEstacao, NULL, NULL, &OFFSET))) {
-        printf("codEstacao nao encontrado.\n");
+        printf("Registro inexistente\n");
+        continue;
       }
 
       //printf("Breakpoint. \n");
@@ -116,6 +117,8 @@ void busca(char *binName, char *btreeName, int N) {
             // 8. codEstIntegra (Último campo tem a quebra de linha \n)
             if (reg.codEstIntegra != -1) printf("%d\n", reg.codEstIntegra); 
             else printf("NULO\n");
+        } else {
+          printf("Registro inexistente.\n");
         }
       }
     }
@@ -196,7 +199,7 @@ void busca(char *binName, char *btreeName, int N) {
 void remocao(char *binName, char *btreeName, int N) {
   FILE *fileBin = fopen(binName, "rb+");
   if (!fileBin) {
-    printf("Falha no processamento de caralho\n");
+    printf("Falha no processamento de dados\n");
     return;
   }
 
@@ -218,6 +221,11 @@ void remocao(char *binName, char *btreeName, int N) {
     fclose(btreeindex);
     return;
   }
+
+  cabBin.status = '0';
+  cabBTree.status = '0';
+  escreverCabecalho(fileBin, cabBin);
+  escreverCabecalhoArvoreB(btreeindex, &cabBTree);
 
   for (int i = 0; i < N; i++)
   {
@@ -278,4 +286,6 @@ void remocao(char *binName, char *btreeName, int N) {
   fclose(fileBin);
   fclose(btreeindex);
 
+  BinarioNaTela(binName);
+  BinarioNaTela(btreeName);
 }

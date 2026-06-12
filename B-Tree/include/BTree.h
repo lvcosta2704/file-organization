@@ -5,6 +5,7 @@
 
 #define ORDEM 4
 #define MAX_CHAVES (ORDEM - 1)
+#define MIN_CHAVES (ORDEM/2 - 1)
 #define TAM_CABECALHO_BTREE 17
 #define TAM_NO (13 + 8 * MAX_CHAVES + 4 * ORDEM)
 
@@ -53,7 +54,6 @@ int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posC
 
 
 int tratarUnderflow(FILE *btreeindex, BTreeHeader *header, int rrnAtual);
-int minChaves();
 int removerChaveNo(BTreeNode *node, int pos);
 int ehFolha(const BTreeNode *node);
 int liberarPaginaBTree(FILE *btreeindex, BTreeHeader *header, int rrnLiberado);
@@ -62,6 +62,6 @@ int emprestarDireita(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posF
 int emprestarEsquerda(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho);
 int fundirComIrmaoEsq(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho);
 int fundirComIrmaoDir(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho);
-
+int buscarSucessorImediato(FILE *btreeindex, int rrnSubarvore, int *rrnFolha, int *posNaFolha);
 
 #endif

@@ -7,7 +7,7 @@
 
 // === ARVORE-B ===
 
-// ----- ABRIR E FECHA NÓ ------
+// ======= ABRIR E FECHA NÓ =========
 // Cria um nó vazio
 // Aloca memória para a criacao do no e inicializa seus campos
 // conforme especificado
@@ -65,7 +65,7 @@ void liberaNo(BTreeNode **node) {
   free(*node);
 }
 
-// ----- IN OUT NÓ E CABEÇALHO ------
+// ======= IN OUT NÓ E CABEÇALHO =========
 
 void escreverNo(FILE *btreeindex, int RRN, const BTreeNode *node) {
   // Verifica se o arquivo nao é NULL, por questoes de seguranca
@@ -146,7 +146,7 @@ void lerCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header) {
   fread(&header->proxRRN, sizeof(int), 1, btreeindex);
   fread(&header->nroNos, sizeof(int), 1, btreeindex);
 }
-// ----- IMPRESSAO E DEGUB ------
+// ======= IMPRESSAO E DEGUB =========
 
 // Funcao que imprime um nó, util para debuggar
 void imprimeNo(const BTreeNode node) {
@@ -190,7 +190,7 @@ void arrayDeChaves(int *array, const BTreeNode *node) {
   }
 }
 
-// ----- UTILS DA ARVORE ------
+// ======= UTILS DA ARVORE =========
 
 
 int removerChaveNo(BTreeNode *node, int pos) {
@@ -206,9 +206,6 @@ int removerChaveNo(BTreeNode *node, int pos) {
   return 1;
 }
 
-int minChaves() {
-  return ((ORDEM + 1) / 2) - 1; // para ORDEM=4, min = 1
-}
 
 int ehFolha(const BTreeNode *node) {
   if (node == NULL) return 0;
@@ -223,7 +220,7 @@ int ehFolha(const BTreeNode *node) {
 
 
 
-// ----- BUSCA ------
+// ======= BUSCA =========
 
 // Retorna 1 se encontrou e 0 se nao encontrou
 int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS, int *FOUND_OFFSET) {
@@ -278,7 +275,7 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
 }
 
 
-// ----- REMOCAO ------
+// ======== REMOCAO ==========
 
 int liberarPaginaBTree(FILE *btreeindex, BTreeHeader *header, int rrnLiberado) {
   BTreeNode *node = criarNo();
@@ -294,6 +291,32 @@ int liberarPaginaBTree(FILE *btreeindex, BTreeHeader *header, int rrnLiberado) {
   liberaNo(&node);
   return 1;
 }
+
+
+int buscarSucessorImediato(FILE *btreeindex, int rrnSubarvore, int *rrnFolha, int *posNaFolha) {
+  if (rrnSubarvore == -1) return 0;
+
+  BTreeNode *node = criarNo();
+  lerNo(btreeindex, rrnSubarvore, node);
+
+  int rrnAtual = rrnSubarvore;
+
+  // Desce sempre pela subárvore da esquerda até chegar numa folha
+  while (!ehFolha(node)) {
+    rrnAtual = node->ponteiroNo[0];
+    liberaNo(&node);
+    node = criarNo();
+    lerNo(btreeindex, rrnAtual, node);
+  }
+
+  // Encontrou a folha, a sucessora é a primeira chave dela
+  if (rrnFolha) *rrnFolha = rrnAtual;
+  if (posNaFolha) *posNaFolha = 0;
+
+  liberaNo(&node);
+  return 1;
+}
+
 
 int buscarPai(FILE *btreeindex, int rrnAtual, int rrnFilho, int *rrnPai, int *posFilhoNoPai) {
   if (rrnAtual == -1) return 0;
@@ -347,7 +370,7 @@ int emprestarDireita(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posF
   lerNo(btreeindex, rrnFilho, filho);
   lerNo(btreeindex, rrnDir, dir);
 
-  if (dir->nroChaves <= minChaves()) {
+  if (dir->nroChaves <= MIN_CHAVES) {
     liberaNo(&pai);
     liberaNo(&filho);
     liberaNo(&dir);
@@ -405,7 +428,7 @@ int emprestarEsquerda(FILE *btreeindex, BTreeHeader *header, int rrnPai, int pos
   lerNo(btreeindex, rrnFilho, filho);
   lerNo(btreeindex, rrnEsq, esq);
 
-  if (esq->nroChaves <= minChaves()) {
+  if (esq->nroChaves <= MIN_CHAVES) {
     liberaNo(&pai);
     liberaNo(&filho);
     liberaNo(&esq);
@@ -485,6 +508,7 @@ int fundirComIrmaoEsq(FILE *btreeindex, BTreeHeader *header, int rrnPai, int pos
   escreverNo(btreeindex, rrnPai, pai);
 
   liberarPaginaBTree(btreeindex, header, rrnFilho);
+  header->nroNos--;
 
   liberaNo(&pai);
   liberaNo(&esq);
@@ -538,6 +562,7 @@ int fundirComIrmaoDir(FILE *btreeindex, BTreeHeader *header, int rrnPai, int pos
   escreverNo(btreeindex, rrnPai, pai);
 
   liberarPaginaBTree(btreeindex, header, rrnDir);
+  header->nroNos--;
 
   liberaNo(&pai);
   liberaNo(&filho);
@@ -559,10 +584,52 @@ int tratarUnderflow(FILE *btreeindex, BTreeHeader *header, int rrnAtual) {
   if (emprestarEsquerda(btreeindex, header, rrnPai, posFilho, rrnAtual)) return 1;
 
   if (posFilho > 0) {
-    return fundirComIrmaoEsq(btreeindex, header, rrnPai, posFilho, rrnAtual);
+    // Salva o rrnEsq antes de fundir
+    BTreeNode *pai = criarNo();
+    lerNo(btreeindex, rrnPai, pai);
+    int rrnEsq = pai->ponteiroNo[posFilho - 1];
+    liberaNo(&pai);
+
+    int resultado = fundirComIrmaoEsq(btreeindex, header, rrnPai, posFilho, rrnAtual);
+
+    if (resultado) {
+      // Verifica se o pai necessita de tratamento de underflow
+      BTreeNode *paiAtualizado = criarNo();
+      lerNo(btreeindex, rrnPai, paiAtualizado);
+      int nroChavesPai = paiAtualizado->nroChaves;
+      liberaNo(&paiAtualizado);
+
+      if (rrnPai == header->noRaiz && nroChavesPai == 0) {
+        header->noRaiz = rrnEsq;
+        escreverCabecalhoArvoreB(btreeindex, header);
+      }
+      else if (nroChavesPai < MIN_CHAVES) {
+        return tratarUnderflow(btreeindex, header, rrnPai);
+      }
+    }
+    return resultado;
   }
 
-  return fundirComIrmaoDir(btreeindex, header, rrnPai, posFilho, rrnAtual);
+  // Agora se chegou ate aqui quer dizer que posFilho == 0, ou seja, nao possui irmao a esquerda
+
+  int resultado = fundirComIrmaoDir(btreeindex, header, rrnPai, posFilho, rrnAtual);
+
+    if (resultado) {
+      // Verifica se o pai necessita de tratamento de underflow
+      BTreeNode *paiAtualizado = criarNo();
+      lerNo(btreeindex, rrnPai, paiAtualizado);
+      int nroChavesPai = paiAtualizado->nroChaves;
+      liberaNo(&paiAtualizado);
+
+      if (rrnPai == header->noRaiz && nroChavesPai == 0) {
+        header->noRaiz = rrnAtual;
+        escreverCabecalhoArvoreB(btreeindex, header);
+      }
+      else if (nroChavesPai < MIN_CHAVES) {
+        return tratarUnderflow(btreeindex, header, rrnPai);
+      }
+    }
+  return resultado;
 }
 
 
@@ -574,40 +641,66 @@ int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posC
 
   lerNo(btreeindex, rrnAtual, node);
 
-  // Protecao basica de indice
+  // Proteção básica de índice
   if (posChave < 0 || posChave >= node->nroChaves) {
     liberaNo(&node);
     return 0;
   }
 
-  // Versao minima: remove somente quando a chave esta em folha.
-  // (Caso interno com sucessora voce implementa em seguida.)
-  if (!ehFolha(node)) {
-    liberaNo(&node);
-    return 0;
-  }
+  // === CASO 1: NÓ FOLHA ===
+  if (ehFolha(node)) {
+    removerChaveNo(node, posChave);
+    escreverNo(btreeindex, rrnAtual, node);
 
-  removerChaveNo(node, posChave);
-  escreverNo(btreeindex, rrnAtual, node);
-
-  // Caso especial: raiz
-  if (rrnAtual == header->noRaiz) {
-    if (node->nroChaves == 0) {
-      header->noRaiz = -1;
-      escreverCabecalhoArvoreB(btreeindex, header);
+    // Caso especial: raiz
+    if (rrnAtual == header->noRaiz) {
+      if (node->nroChaves == 0) {
+        header->noRaiz = -1;
+        escreverCabecalhoArvoreB(btreeindex, header);
+      }
+      liberaNo(&node);
+      return 1;
     }
+
+    // Underflow: para ORDEM=4, acontece quando ficou com 0 chaves
+    if (node->nroChaves < MIN_CHAVES) {
+      liberaNo(&node);
+      return tratarUnderflow(btreeindex, header, rrnAtual);
+    }
+
     liberaNo(&node);
     return 1;
   }
 
-  // Underflow: para ORDEM=4, acontece quando ficou com 0 chaves
-  if (node->nroChaves < minChaves()) {
+  // === CASO 2: NÓ INTERNO (não é folha) ===
+  // Busca a sucessora imediata na subárvore direita
+  int rrnSucessora = -1;
+  int posSucessora = -1;
+
+  // A subárvore direita da chave está em ponteiroNo[posChave + 1]
+  int rrnSubarvore = node->ponteiroNo[posChave + 1];
+
+  if (rrnSubarvore == -1) {
     liberaNo(&node);
-    return tratarUnderflow(btreeindex, header, rrnAtual);
+    return 0;
   }
 
-  liberaNo(&node);
-  return 1;
-}
+  buscarSucessorImediato(btreeindex, rrnSubarvore, &rrnSucessora, &posSucessora);
 
+  // Lê a folha onde a sucessora está
+  BTreeNode *folhaSucessora = criarNo();
+  lerNo(btreeindex, rrnSucessora, folhaSucessora);
+
+  // Copia a sucessora para a posição da chave a remover
+  node->indice[posChave] = folhaSucessora->indice[posSucessora];
+  escreverNo(btreeindex, rrnAtual, node);
+
+  int chaveSucessora = folhaSucessora->indice[posSucessora].codEstacao;
+  liberaNo(&folhaSucessora);
+  liberaNo(&node);
+
+  // Agora remove a sucessora da folha onde ela estava
+  // Chama recursivamente removendo na folha
+  return removerArvoreB(btreeindex, header, rrnSucessora, posSucessora, chaveSucessora);
+}
 
