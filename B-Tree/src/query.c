@@ -57,7 +57,11 @@ void busca(char *binName, char *btreeName, int N) {
       //printf("No raiz: %d\n", cabBTree.noRaiz);
 
       if(!(buscaArvoreB(btreeindex, cabBTree.noRaiz, filtro.codEstacao, NULL, NULL, &OFFSET))) {
+<<<<<<< HEAD
         printf("Registro inexistente\n");
+=======
+        printf("Registro inexistente.\n\n"); // Se estiver, nao existe o registro
+>>>>>>> f9f82db4640840519c4dff393a5c6d09bc32d16e
         continue;
       }
 
@@ -75,7 +79,7 @@ void busca(char *binName, char *btreeName, int N) {
       // Verifica se o registro está marcado como logicamente removido
       fread(&reg.removido, sizeof(char), 1, fileBin);
       if(reg.removido == '1') {
-        printf("Registro inexistente.\n"); // Se estiver, nao existe o registro
+        printf("Registro inexistente.\n\n"); // Se estiver, nao existe o registro
         continue; // Realiza a proxima busca
       }
       else { // Se nao,
@@ -115,10 +119,10 @@ void busca(char *binName, char *btreeName, int N) {
             else printf("NULO ");
             
             // 8. codEstIntegra (Último campo tem a quebra de linha \n)
-            if (reg.codEstIntegra != -1) printf("%d\n", reg.codEstIntegra); 
-            else printf("NULO\n");
-        } else {
-          printf("Registro inexistente.\n");
+
+            if (reg.codEstIntegra != -1) printf("%d\n\n", reg.codEstIntegra); 
+            else printf("NULO\n\n");
+
         }
       }
     }
@@ -249,7 +253,6 @@ void remocao(char *binName, char *btreeName, int N) {
     );
 
     if (!encontrou) {
-      printf("Registro Inexistente.\n");
       continue;
     }
 
@@ -258,7 +261,6 @@ void remocao(char *binName, char *btreeName, int N) {
     fread(&reg.removido, sizeof(char), 1, fileBin);
 
     if (reg.removido == '1') {
-      printf("Registro inexistente.\n");
       continue;
     }
 
@@ -288,4 +290,8 @@ void remocao(char *binName, char *btreeName, int N) {
 
   BinarioNaTela(binName);
   BinarioNaTela(btreeName);
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> f9f82db4640840519c4dff393a5c6d09bc32d16e
