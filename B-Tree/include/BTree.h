@@ -11,6 +11,9 @@
 
 #define ENCONTROU 1
 #define NAO_ENCONTROU 0
+#define PROMOCAO 1
+#define SEM_PROMOCAO 0
+#define ERRO -1
 
 // === STRUCTS ===
 
@@ -42,16 +45,20 @@ typedef struct {
 BTreeNode *criarNo();
 void liberaNo(BTreeNode **node);
 void lerNo(FILE *btreeindex, int RRN, BTreeNode *node);
+void escreverNo(FILE *btreeindex, int RRN, const BTreeNode *node);
 void imprimeArray(int *array);
 void imprimeNo(const BTreeNode node);
 void arrayDeChaves(int *array, const BTreeNode *node);
 void lerCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header);
 void escreverCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header);
 int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS, int *FOUND_DATA_RRN);
+int insercaoArvoreB(FILE *btreeindex, int RRNAtual, int chave, int offset, int *PROMO_R_CHILD, int *PROMO_KEY, int *PROMO_OFFSET);
 int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posChave, int chave);
 
-// -------- FUNCOES AUXILIARES DA REMOCAO -------
+void inserirOrdenado(BTreeNode *node, int chave, int offset, int r_child);
+void split(BTreeNode *nodeAtual, int chaveInserida, int offsetInserido, int ptrInserido, BTreeNode *novoNo, int *chavePromovida, int *offsetPromovido);
 
+// -------- FUNCOES AUXILIARES DA REMOCAO -------
 
 int tratarUnderflow(FILE *btreeindex, BTreeHeader *header, int rrnAtual);
 int removerChaveNo(BTreeNode *node, int pos);

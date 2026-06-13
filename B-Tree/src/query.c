@@ -57,11 +57,8 @@ void busca(char *binName, char *btreeName, int N) {
       //printf("No raiz: %d\n", cabBTree.noRaiz);
 
       if(!(buscaArvoreB(btreeindex, cabBTree.noRaiz, filtro.codEstacao, NULL, NULL, &OFFSET))) {
-<<<<<<< HEAD
         printf("Registro inexistente\n");
-=======
         printf("Registro inexistente.\n\n"); // Se estiver, nao existe o registro
->>>>>>> f9f82db4640840519c4dff393a5c6d09bc32d16e
         continue;
       }
 
@@ -290,8 +287,4 @@ void remocao(char *binName, char *btreeName, int N) {
 
   BinarioNaTela(binName);
   BinarioNaTela(btreeName);
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> f9f82db4640840519c4dff393a5c6d09bc32d16e
