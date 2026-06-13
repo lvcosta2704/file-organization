@@ -8,6 +8,52 @@
 
 // === FUNCIONALIDADES ===
 
+void criarArvoreB(char *binName, char *btreeName) {
+  // Abre o arquivo de registros no modo leitura e verifica se ocorreu bem
+  FILE *fileBin = fopen(binName, "rb");
+  if(!fileBin) {
+    printf("Falha no processamento do arquivo.\n");
+    return;
+  }
+
+  // Abre o arquivo de indice Arvore-B no modo escrita e verifica se ocorreu bem
+  FILE *btreeindex = fopen(btreeName, "wb");
+  if(!btreeindex) {
+    printf("Falha no processamento do arquivo.\n");
+    return;
+  }
+
+  // Lê o cabecalho do arquivo de dados e verifica se está consistente
+  Cabecalho cabBin;
+
+  lerCabecalho(fileBin, &cabBin);
+  if(cabBin.status == '0') {
+    printf("Arquivo inconsistente.\n");
+    fclose(fileBin);
+    return;
+  }
+
+  // Escreve o cabecalho do arquivo de indice Arvore-B
+   
+  // Insere cada um dos registros do arquivo de dados sequencialmente
+  for(int i = 0; i < cabBin.proxRRN; i++) { // 
+    // 1. Lê o registro a verifica se está marcado como logicamente removido
+    
+    // 2. Define a chave como o codEstacao e define o offset do campo que o contém
+
+    // 3. Realiza a insercao da chave e do offset no arquivo de indice Arvore-B
+
+   
+  }
+
+  // Fecha os arquivos
+  fclose(fileBin);
+  fclose(btreeindex);
+
+  BinarioNaTela(binName);
+  BinarioNaTela(btreeName);
+}
+
 // Realiza n buscas usando o arquivo de índice Arvore-B
 // para codEstacao
 // Para
@@ -196,6 +242,43 @@ void busca(char *binName, char *btreeName, int N) {
   fclose(btreeindex);
 }
 
+void insercao(char *binName, char *btreeName, int N) {
+  FILE *fileBin = fopen(binName, "rb+");
+  if (!fileBin) {
+    printf("Falha no processamento de dados\n");
+    return;
+  }
+
+  FILE *btreeindex = fopen(btreeName, "rb+");
+  if (!btreeindex) {
+    printf("Falha no processameto do arquivo.\n");
+    return;
+  }
+
+  Cabecalho cabBin;
+  lerCabecalho(fileBin, &cabBin);
+
+  BTreeHeader cabBTree;
+  lerCabecalhoArvoreB(btreeindex, &cabBTree);
+
+  if (cabBin.status == '0' || cabBTree.status == '0') {
+    printf("Arquivo inconsistente.\n");
+    fclose(fileBin);
+    fclose(btreeindex);
+    return;
+  }
+
+  cabBin.status = '0';
+  cabBTree.status = '0';
+  escreverCabecalho(fileBin, cabBin);
+  escreverCabecalhoArvoreB(btreeindex, &cabBTree);
+  
+  // Realiza N insercoes
+  for(int i = 0; i < N; i++) {
+    // 1. Pede os campos de busca para o usuário
+    Busca filtro = inputFiltro();
+  }
+}
 
 void remocao(char *binName, char *btreeName, int N) {
   FILE *fileBin = fopen(binName, "rb+");

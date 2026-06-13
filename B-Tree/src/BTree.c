@@ -441,6 +441,7 @@ int insercaoArvoreB(FILE *btreeindex, int RRNAtual, int chave, int offset, int *
       novoPonteiroPromovido = header->proxRRN;
 
       (header->proxRRN)++;
+      escreverCabecalhoArvoreB(btreeindex, header);
 
       free(header);
 
