@@ -281,18 +281,16 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
 // ======== INSERCAO =========
 
 void inserirOrdenado(BTreeNode *node, int chave, int offset, int r_child) {
-    // Começamos do fim do nó (última chave válida)
+    // Começamos do fim do nó
     int i = node->nroChaves - 1;
 
     // Desloca as chaves, offsets e ponteiros para a direita
     // enquanto encontrar chaves maiores que a chave que queremos inserir
     while (i >= 0 && node->indice[i].codEstacao > chave) {
         // Desloca o índice (chave e offset juntos)
-        node->indice[i+1] = node->indice[i];
-        
+        node->indice[i+1] = node->indice[i]; 
         // Desloca o ponteiro da direita correspondente a essa chave
-        node->ponteiroNo[i+2] = node->ponteiroNo[i + 1];
-        
+        node->ponteiroNo[i+2] = node->ponteiroNo[i + 1]; 
         i--;
     }
 
@@ -301,14 +299,13 @@ void inserirOrdenado(BTreeNode *node, int chave, int offset, int r_child) {
     node->indice[i+1].offset = offset;
     
     // O ponteiro do filho direito da nova chave vai para a posição i + 2
-    node->ponteiroNo[i + 2] = r_child;
+    node->ponteiroNo[i+2] = r_child;
 
     // Incrementa o contador de chaves do nó
     node->nroChaves++;
 }
 
-void split(BTreeNode *nodeAtual, int chaveInserida, int offsetInserido, int ptrInserido, BTreeNode *novoNo, int *chavePromovida, int *offsetPromovido) {
-    
+void split(BTreeNode *nodeAtual, int chaveInserida, int offsetInserido, int ptrInserido, BTreeNode *novoNo, int *chavePromovida, int *offsetPromovido) { 
     // Criação dos arrays temporários que suportam o overflow (tamanho + 1)
     int tempChaves[MAX_CHAVES + 1];
     int tempOffsets[MAX_CHAVES + 1];
@@ -381,82 +378,124 @@ void split(BTreeNode *nodeAtual, int chaveInserida, int offsetInserido, int ptrI
     novoNo->proximo = -1;
 }
 
-int insercaoArvoreB(FILE *btreeindex, int RRNAtual, int chave, int offset, int *PROMO_R_CHILD, int *PROMO_KEY, int *PROMO_OFFSET) {
-  // Se passou de um nó folha
+
+int insercaoArvoreB(FILE *btreeindex, BTreeHeader *header, int RRNAtual, int chave, int offset, int *PROMO_R_CHILD, int *PROMO_KEY, int *PROMO_OFFSET) {  
+  // Verifica se a arvore está vazia
+  if(header->noRaiz == -1) {
+    // Se estiver, inicializa o primeiro nó raiz
+    BTreeNode *novaRaiz = criarNo();
+
+    novaRaiz->tipoNo = 0; // 0 define o tipo: nó raiz
+    novaRaiz->indice[0].codEstacao = chave;
+    novaRaiz->indice[0].offset = offset;
+    novaRaiz->nroChaves = 1;
+    
+    header->noRaiz = header->proxRRN; // A raiz fica no próximo RRN válido
+    (header->nroNos)++;
+    (header->proxRRN)++;
+
+    escreverNo(btreeindex, header->noRaiz, novaRaiz);
+    liberaNo(&novaRaiz);
+
+    return SEM_PROMOCAO; // Insercao finalizada
+  }
+  // Se passou de uma folha
   if(RRNAtual == -1) {
     *PROMO_KEY = chave;
     *PROMO_OFFSET = offset;
     *PROMO_R_CHILD = -1;
-    return PROMOCAO; // Retorna promocao para a chamada recursiva (insere no nó folha)
-  }
-  else { // Se nao
-    // Realiza uma busca:
+    return PROMOCAO; // retorna promocao (insere na folha)
+  } 
+  // Caso contrario
+  else { 
     // Lê a página atual na memoria principal
     BTreeNode *node = criarNo();
     lerNo(btreeindex, RRNAtual, node);
 
     int pos;
- 
-     // SUB-ROTINA: criar uma array de chaves
     int array[MAX_CHAVES];
-    arrayDeChaves(array, node); // OBS: a array sempre está ordenada
-    
-    //imprimeArray(array);
+    arrayDeChaves(array, node); 
                                 
-    // SUB-ROTINA: realizar busca binaria na array de chaves
-    if(binarySearch(chave, array, 0, MAX_CHAVES, &pos) != -1) {
+    // Busca binária até o número exato de chaves presentes
+    if(binarySearch(chave, array, 0, node->nroChaves, &pos) != -1) {
       printf("Nao é possivel inserir chaves duplicadas.\n");
       liberaNo(&node);
       return ERRO;
     }
 
     // Chama a funcao recursivamente descobrindo se haverá promocao
-    int RETORNO = insercaoArvoreB(btreeindex, node->ponteiroNo[pos], chave, offset, PROMO_R_CHILD, PROMO_KEY, PROMO_OFFSET);
+    int RETORNO = insercaoArvoreB(btreeindex, header, node->ponteiroNo[pos], chave, offset, PROMO_R_CHILD, PROMO_KEY, PROMO_OFFSET);
 
-    if(RETORNO == SEM_PROMOCAO || RETORNO == ERRO) { // Se nao há promocao ou há erro, retorna
+    if(RETORNO == SEM_PROMOCAO || RETORNO == ERRO) { 
       liberaNo(&node);
       return RETORNO;
     }
-    else if(node->nroChaves < MAX_CHAVES) { // Se há promocao e tem espaco no nó
-      // Insere a chave no nó de forma ordenada
+    else if(node->nroChaves < MAX_CHAVES) { // Há promocao e tem espaco no nó
       inserirOrdenado(node, *PROMO_KEY, *PROMO_OFFSET, *PROMO_R_CHILD);
       escreverNo(btreeindex, RRNAtual, node);
       liberaNo(&node);
       return SEM_PROMOCAO;
     }
-    else { // Se há promocao e o nó está cheio
-      // Cria um novo nó
+    else { // OVERFLOW: Há promocao e o nó está cheio
       BTreeNode *novoNo = criarNo();
-      int novaChavePromovida;
-      int novoOffsetPromovido;
-      int novoPonteiroPromovido;
-
-      // Realiza o split
+      int novaChavePromovida, novoOffsetPromovido;
+      
       split(node, *PROMO_KEY, *PROMO_OFFSET, *PROMO_R_CHILD, novoNo, &novaChavePromovida, &novoOffsetPromovido);
 
-      // Define o RRN no novo nó
-      BTreeHeader *header = malloc(sizeof(BTreeHeader));
-      lerCabecalhoArvoreB(btreeindex, header);
-
-      novoPonteiroPromovido = header->proxRRN;
-
+      int novoPonteiroPromovido = header->proxRRN;
       (header->proxRRN)++;
-      escreverCabecalhoArvoreB(btreeindex, header);
+      (header->nroNos)++;
 
-      free(header);
+      // verifica se o nó que sofreu split é a raiz do sistema
+      if (RRNAtual == header->noRaiz) {        
+        // A raiz antiga não é mais raiz
+        // Reclassifica os nós do split:
+        int novoTipo = (node->ponteiroNo[0] == -1) ? -1 : 1;
+        node->tipoNo = novoTipo;
+        novoNo->tipoNo = novoTipo;
 
-      // Salva ambos os nós no disco
-      escreverNo(btreeindex, RRNAtual, node);
-      escreverNo(btreeindex, novoPonteiroPromovido, novoNo);
+        // Salva o antigo nó raiz
+        escreverNo(btreeindex, RRNAtual, node);
+        escreverNo(btreeindex, novoPonteiroPromovido, novoNo);
 
-      *PROMO_KEY = novaChavePromovida;
-      *PROMO_OFFSET = novoOffsetPromovido;
-      *PROMO_R_CHILD = novoPonteiroPromovido;
+        // Cria a nova raiz
+        BTreeNode *novaRaiz = criarNo();
+        novaRaiz->tipoNo = 0; // 0 define o tipo: nó raiz
+        novaRaiz->nroChaves = 1;
+        novaRaiz->indice[0].codEstacao = novaChavePromovida;
+        novaRaiz->indice[0].offset = novoOffsetPromovido;
+        
+        novaRaiz->ponteiroNo[0] = RRNAtual;
+        novaRaiz->ponteiroNo[1] = novoPonteiroPromovido;
 
-      liberaNo(&node);
-      liberaNo(&novoNo);
+        // Atualiza os campos do cabecalho
+        int rrnNovaRaiz = header->proxRRN;
+        header->noRaiz = rrnNovaRaiz;
+        (header->proxRRN)++;
+        (header->nroNos)++;
 
-      return PROMOCAO;
+        escreverNo(btreeindex, rrnNovaRaiz, novaRaiz);
+
+        liberaNo(&novaRaiz);
+        liberaNo(&node);
+        liberaNo(&novoNo);
+
+        return SEM_PROMOCAO; // Insercao finalizada
+      } 
+      else {
+        // Se nao era a raiz, salva no disco e repassa a promocao
+        escreverNo(btreeindex, RRNAtual, node);
+        escreverNo(btreeindex, novoPonteiroPromovido, novoNo);
+
+        *PROMO_KEY = novaChavePromovida;
+        *PROMO_OFFSET = novoOffsetPromovido;
+        *PROMO_R_CHILD = novoPonteiroPromovido;
+
+        liberaNo(&node);
+        liberaNo(&novoNo);
+
+        return PROMOCAO;
+      }
     }
   }
 }

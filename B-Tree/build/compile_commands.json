@@ -1,0 +1,74 @@
+[
+  {
+    "file": "src/BTree.c",
+    "arguments": [
+      "/usr/sbin/gcc",
+      "-Iinclude",
+      "src/BTree.c",
+      "-o",
+      "bin/main"
+    ],
+    "directory": "/home/s1nr/Repos/assignments/file-organization/B-Tree",
+    "output": "bin/main"
+  },
+  {
+    "file": "src/BTree_utils.c",
+    "arguments": [
+      "/usr/sbin/gcc",
+      "-Iinclude",
+      "src/BTree_utils.c",
+      "-o",
+      "bin/main"
+    ],
+    "directory": "/home/s1nr/Repos/assignments/file-organization/B-Tree",
+    "output": "bin/main"
+  },
+  {
+    "file": "src/fornecidas.c",
+    "arguments": [
+      "/usr/sbin/gcc",
+      "-Iinclude",
+      "src/fornecidas.c",
+      "-o",
+      "bin/main"
+    ],
+    "directory": "/home/s1nr/Repos/assignments/file-organization/B-Tree",
+    "output": "bin/main"
+  },
+  {
+    "file": "src/main.c",
+    "arguments": [
+      "/usr/sbin/gcc",
+      "-Iinclude",
+      "src/main.c",
+      "-o",
+      "bin/main"
+    ],
+    "directory": "/home/s1nr/Repos/assignments/file-organization/B-Tree",
+    "output": "bin/main"
+  },
+  {
+    "file": "src/query.c",
+    "arguments": [
+      "/usr/sbin/gcc",
+      "-Iinclude",
+      "src/query.c",
+      "-o",
+      "bin/main"
+    ],
+    "directory": "/home/s1nr/Repos/assignments/file-organization/B-Tree",
+    "output": "bin/main"
+  },
+  {
+    "file": "src/RegistrosIO.c",
+    "arguments": [
+      "/usr/sbin/gcc",
+      "-Iinclude",
+      "src/RegistrosIO.c",
+      "-o",
+      "bin/main"
+    ],
+    "directory": "/home/s1nr/Repos/assignments/file-organization/B-Tree",
+    "output": "bin/main"
+  }
+]

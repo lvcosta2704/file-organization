@@ -17,7 +17,7 @@ void criarArvoreB(char *binName, char *btreeName) {
   }
 
   // Abre o arquivo de indice Arvore-B no modo escrita e verifica se ocorreu bem
-  FILE *btreeindex = fopen(btreeName, "wb");
+  FILE *btreeindex = fopen(btreeName, "wb+");
   if(!btreeindex) {
     printf("Falha no processamento do arquivo.\n");
     return;
@@ -33,24 +33,60 @@ void criarArvoreB(char *binName, char *btreeName) {
     return;
   }
 
-  // Escreve o cabecalho do arquivo de indice Arvore-B
+  // Inicializa o cabecalho do arquivo de indice Arvore-B
+  BTreeHeader cabBTree;
+
+  cabBTree.status = '0'; // Status é inconsistente até o arquivo ser criado completamente
+  cabBTree.noRaiz = -1; 
+  cabBTree.topo = -1;
+  cabBTree.proxRRN = 0;
+  cabBTree.nroNos = 0;
+
+  escreverCabecalhoArvoreB(btreeindex, &cabBTree);
    
-  // Insere cada um dos registros do arquivo de dados sequencialmente
-  for(int i = 0; i < cabBin.proxRRN; i++) { // 
-    // 1. Lê o registro a verifica se está marcado como logicamente removido
-    
+  // 1. Lê o registro a verifica se está marcado como logicamente removido
+  fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Garante que a referência para o arquivo de dados está logo após o cabecalho
+  
+  Registro reg;
+
+  // Passa por cada registro de dados sequencialmente
+  // verificando se ele está removido a principio
+  while(fread(&reg.removido, sizeof(char), 1, fileBin) == 1) {
+    // Se estiver removido, pula para o próximo
+    if(reg.removido == '1') {
+      fseek(fileBin, TAM_REGISTRO - 1, SEEK_CUR);
+      continue;
+    } 
+
     // 2. Define a chave como o codEstacao e define o offset do campo que o contém
 
-    // 3. Realiza a insercao da chave e do offset no arquivo de indice Arvore-B
+    int offset = ftell(fileBin) - 1; // Guarda o offset do campo
 
-   
-  }
+    lerRegistro(fileBin, &reg);
+
+    int chave = reg.codEstacao; // Guarda a chave do arquivo de 
+                                
+    // 3. Realiza a insercao da chave e do offset no arquivo de indice Arvore-B
+    int PROMO_R_CHILD;
+    int PROMO_KEY;
+    int PROMO_OFFSET;
+    insercaoArvoreB(btreeindex,
+        &cabBTree,
+        cabBTree.noRaiz,
+        chave,
+        offset,
+        &PROMO_R_CHILD,
+        &PROMO_KEY,
+        &PROMO_OFFSET);
+  } 
+
+  cabBTree.status = '1'; // Marca o arquivo como consistente novamente
+  escreverCabecalhoArvoreB(btreeindex, &cabBTree);
 
   // Fecha os arquivos
   fclose(fileBin);
   fclose(btreeindex);
 
-  BinarioNaTela(binName);
   BinarioNaTela(btreeName);
 }
 
@@ -103,7 +139,6 @@ void busca(char *binName, char *btreeName, int N) {
       //printf("No raiz: %d\n", cabBTree.noRaiz);
 
       if(!(buscaArvoreB(btreeindex, cabBTree.noRaiz, filtro.codEstacao, NULL, NULL, &OFFSET))) {
-        printf("Registro inexistente\n");
         printf("Registro inexistente.\n\n"); // Se estiver, nao existe o registro
         continue;
       }

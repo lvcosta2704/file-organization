@@ -15,7 +15,7 @@ int main() {
     case 7:
       // Cria o arquivo de índice Arvore-B
       scanf("%s %s", inputfile, btreeindex);
-  //    criarArvoreB(inputfile, btreeindex);
+      criarArvoreB(inputfile, btreeindex);
       break;
     case 8: {
       // Realiza n buscas usando o arquivo de índice arvore B

@@ -52,7 +52,7 @@ void arrayDeChaves(int *array, const BTreeNode *node);
 void lerCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header);
 void escreverCabecalhoArvoreB(FILE *btreeindex, BTreeHeader *header);
 int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUND_POS, int *FOUND_DATA_RRN);
-int insercaoArvoreB(FILE *btreeindex, int RRNAtual, int chave, int offset, int *PROMO_R_CHILD, int *PROMO_KEY, int *PROMO_OFFSET);
+int insercaoArvoreB(FILE *btreeindex, BTreeHeader *header, int RRNAtual, int chave, int offset, int *PROMO_R_CHILD, int *PROMO_KEY, int *PROMO_OFFSET);
 int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posChave, int chave);
 
 void inserirOrdenado(BTreeNode *node, int chave, int offset, int r_child);
