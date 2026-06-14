@@ -463,14 +463,16 @@ int insercaoArvoreB(FILE *btreeindex, int RRNAtual, int chave, int offset, int *
 
 // ======== REMOCAO ==========
 
+
 int liberarPaginaBTree(FILE *btreeindex, BTreeHeader *header, int rrnLiberado) {
   BTreeNode *node = criarNo();
-  lerNo(btreeindex, rrnLiberado, node);
+  lerNo(btreeindex, rrnLiberado, node); // Le o nó com o determinado RRN
 
-  node->removido = '1';
-  node->proximo = header->topo;
+  node->removido = '1'; // Seta como removido logicamente
+  node->proximo = header->topo; // Push na pilha
 
-  header->topo = rrnLiberado;
+  header->topo = rrnLiberado; // Ultima página liberada
+  // Procedimento de escrita do cabeçalho e no nó
   escreverCabecalhoArvoreB(btreeindex, header);
   escreverNo(btreeindex, rrnLiberado, node);
 
@@ -480,8 +482,8 @@ int liberarPaginaBTree(FILE *btreeindex, BTreeHeader *header, int rrnLiberado) {
 
 
 int buscarSucessorImediato(FILE *btreeindex, int rrnSubarvore, int *rrnFolha, int *posNaFolha) {
-  if (rrnSubarvore == -1) return 0;
-
+  if (rrnSubarvore == -1) return 0; // Se nao ha subarvore, retorna 0
+  // Procediemento de leitura 
   BTreeNode *node = criarNo();
   lerNo(btreeindex, rrnSubarvore, node);
 
@@ -503,14 +505,15 @@ int buscarSucessorImediato(FILE *btreeindex, int rrnSubarvore, int *rrnFolha, in
   return 1;
 }
 
-
+// Funcao que ajuda a achar os irmaos de um nó, primeiramente achando o pai
 int buscarPai(FILE *btreeindex, int rrnAtual, int rrnFilho, int *rrnPai, int *posFilhoNoPai) {
-  if (rrnAtual == -1) return 0;
-
+  if (rrnAtual == -1) return 0; // Se chegou em -1 não tem nó nesse RRN
+  // Procedimento de leitura (dados na RAM)
   BTreeNode *node = criarNo();
   lerNo(btreeindex, rrnAtual, node);
-
+  // Loop para checar se o rrnFilho é igual a algum ponteiroNo do pai
   for (int i = 0; i < ORDEM; i++) {
+    // Checa todos os filhos do Nó e ve se algum bate com o RRNFilho
     if (node->ponteiroNo[i] == rrnFilho) {
       if (rrnPai) {
         *rrnPai = rrnAtual;
@@ -522,7 +525,7 @@ int buscarPai(FILE *btreeindex, int rrnAtual, int rrnFilho, int *rrnPai, int *po
       return 1;
     }
   }
-
+  // Chama recursivamente para procurar em profundidade buscando o pai
   for (int i = 0; i < ORDEM; i++) {
     if (node->ponteiroNo[i] != -1) {
       if (buscarPai(btreeindex, node->ponteiroNo[i], rrnFilho, rrnPai, posFilhoNoPai)) {
@@ -535,27 +538,30 @@ int buscarPai(FILE *btreeindex, int rrnAtual, int rrnFilho, int *rrnPai, int *po
   liberaNo(&node);
   return 0;
 }
-
+// Funcao que desempenha o emprestimo pela direita de uma chave para outro nó
 int emprestarDireita(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho) {
+  // Procedimento de leitura (dados na RAM)
   BTreeNode *pai = criarNo();
   lerNo(btreeindex, rrnPai, pai);
-
+  // Se posFIlho foi maior ou igual nao faz sentido calcular, já que o pai nao possui essa qtd de chaves
   if (posFilho >= pai->nroChaves) {
     liberaNo(&pai);
     return 0;
   }
-
+  // Se nao houver irmao a direita nao faz sentido emprestar da Direita
   int rrnDir = pai->ponteiroNo[posFilho + 1];
   if (rrnDir == -1) {
     liberaNo(&pai);
     return 0;
   }
 
+  // Procedimento de leitura (dados na RAM)
   BTreeNode *filho = criarNo();
   BTreeNode *dir = criarNo();
   lerNo(btreeindex, rrnFilho, filho);
   lerNo(btreeindex, rrnDir, dir);
 
+  // Se o nó da direita nao tiver a quantidade minima de chaves entao nao tem como emprestar
   if (dir->nroChaves <= MIN_CHAVES) {
     liberaNo(&pai);
     liberaNo(&filho);
@@ -563,88 +569,112 @@ int emprestarDireita(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posF
     return 0;
   }
 
-  filho->indice[filho->nroChaves] = pai->indice[posFilho];
+  // Puxa chaves do irmão da direita enquanto ele tiver MAIS chaves que o filho
+  while (filho->nroChaves < dir->nroChaves) {
+    // Desce a chave do pai para o filho
+    filho->indice[filho->nroChaves] = pai->indice[posFilho];
 
-  if (!ehFolha(filho)) {
-    filho->ponteiroNo[filho->nroChaves + 1] = dir->ponteiroNo[0];
-  }
-
-  pai->indice[posFilho] = dir->indice[0];
-
-  for (int i = 0; i < dir->nroChaves - 1; i++) {
-    dir->indice[i] = dir->indice[i + 1];
-  }
-  dir->indice[dir->nroChaves - 1].codEstacao = -1;
-  dir->indice[dir->nroChaves - 1].offset = -1;
-
-  if (!ehFolha(dir)) {
-    for (int i = 0; i < dir->nroChaves; i++) {
-      dir->ponteiroNo[i] = dir->ponteiroNo[i + 1];
+    // Passa o ponteiro mais à esquerda da dir para ser o da direita do filho
+    if (!ehFolha(filho)) {
+      filho->ponteiroNo[filho->nroChaves + 1] = dir->ponteiroNo[0];
     }
-    dir->ponteiroNo[dir->nroChaves] = -1;
+
+    // Sobe a primeira chave da dir para o pai
+    pai->indice[posFilho] = dir->indice[0];
+
+    // Puxa tudo na dir uma casa para a esquerda
+    for (int i = 0; i < dir->nroChaves - 1; i++) {
+      dir->indice[i] = dir->indice[i + 1];
+    }
+    dir->indice[dir->nroChaves - 1].codEstacao = -1;
+    dir->indice[dir->nroChaves - 1].offset = -1;
+
+    // Reajuste de ponteiros se nao for folha
+    if (!ehFolha(dir)) {
+      // Move os ponteiros para esquerda
+      for (int i = 0; i < dir->nroChaves; i++) {
+        dir->ponteiroNo[i] = dir->ponteiroNo[i + 1];
+      }
+      // Ultima posicao fica sem nada, por isso aponta para -1
+      dir->ponteiroNo[dir->nroChaves] = -1;
+    }
+
+    // Atualiza os contadores para a próxima iteração
+    dir->nroChaves--;
+    filho->nroChaves++;
   }
 
-  dir->nroChaves--;
-  filho->nroChaves++;
-
+  // Processo de escrita (de volta no binario)
   escreverNo(btreeindex, rrnFilho, filho);
   escreverNo(btreeindex, rrnDir, dir);
   escreverNo(btreeindex, rrnPai, pai);
-
+  // Liberação na RAM
   liberaNo(&pai);
   liberaNo(&filho);
   liberaNo(&dir);
   return 1;
 }
-
+// Funcao que desempenha o emprestimo de uma chave para outro nó pela esquerda
 int emprestarEsquerda(FILE *btreeindex, BTreeHeader *header, int rrnPai, int posFilho, int rrnFilho) {
-  if (posFilho == 0) return 0;
-
+  if (posFilho == 0) return 0; // Ou seja, nao possui irmao a direita
+  // Procediemento de escrito (dados na RAM)
   BTreeNode *pai = criarNo();
   lerNo(btreeindex, rrnPai, pai);
-
+  // Salva no rrnEsq o nó a esquerda do nó atual
   int rrnEsq = pai->ponteiroNo[posFilho - 1];
+  // Se for nulo retorna
   if (rrnEsq == -1) {
     liberaNo(&pai);
     return 0;
   }
 
+  // Processo de leitura (dados na RAM)
   BTreeNode *filho = criarNo();
   BTreeNode *esq = criarNo();
   lerNo(btreeindex, rrnFilho, filho);
   lerNo(btreeindex, rrnEsq, esq);
 
+  // Se o nó esquerdo nao tem o minimo nao pode emprestar
   if (esq->nroChaves <= MIN_CHAVES) {
     liberaNo(&pai);
     liberaNo(&filho);
     liberaNo(&esq);
     return 0;
   }
-
+  // Move as chaves do filho
   for (int i = filho->nroChaves; i > 0; i--) {
     filho->indice[i] = filho->indice[i - 1];
   }
 
+  // Uma das chaves vai para o pai, outra para o filho
   filho->indice[0] = pai->indice[posFilho - 1];
   pai->indice[posFilho - 1] = esq->indice[esq->nroChaves - 1];
 
+  // Reajuste de ponteiros se nao for nó folha
   if (!ehFolha(filho)) {
     for (int i = filho->nroChaves + 1; i > 0; i--) {
+      // Empurra uma casa para direita para abrir espaço no indice 0
       filho->ponteiroNo[i] = filho->ponteiroNo[i - 1];
     }
+    // Posicao mais a esquerda do nó filho recebe o ponteiro mais a direita do nó irmao esquerdo
+    // Com a intuicao de manter a organizacao da arvoreB
     filho->ponteiroNo[0] = esq->ponteiroNo[esq->nroChaves];
+    // Ponteiro mais a direita do nó esquerdo aponta para NULL
     esq->ponteiroNo[esq->nroChaves] = -1;
   }
 
+  // Limpeza da chave doada do irmao da esquerda
   esq->indice[esq->nroChaves - 1].codEstacao = -1;
   esq->indice[esq->nroChaves - 1].offset = -1;
+  // Atualiza os contadores
+  // Irmao da esquerda perdeu uma chave e o "filho" ganhou uma 
   esq->nroChaves--;
   filho->nroChaves++;
-
+  // Processo de escrita (de volta no binario)
   escreverNo(btreeindex, rrnEsq, esq);
   escreverNo(btreeindex, rrnFilho, filho);
   escreverNo(btreeindex, rrnPai, pai);
-
+  // Liberacao na RAM
   liberaNo(&pai);
   liberaNo(&filho);
   liberaNo(&esq);
@@ -787,7 +817,18 @@ int tratarUnderflow(FILE *btreeindex, BTreeHeader *header, int rrnAtual) {
 
       if (rrnPai == header->noRaiz && nroChavesPai == 0) {
         header->noRaiz = rrnEsq;
-        escreverCabecalhoArvoreB(btreeindex, header);
+
+        BTreeNode *novaRaiz = criarNo();
+        lerNo(btreeindex, rrnEsq, novaRaiz);
+        if (!ehFolha(novaRaiz)) {
+            novaRaiz->tipoNo = 0; // Atualiza de intermediário (1) para raiz (0)
+            escreverNo(btreeindex, rrnEsq, novaRaiz);
+        }
+        liberaNo(&novaRaiz);
+
+        header->nroNos--;
+        liberarPaginaBTree(btreeindex, header, rrnPai);
+
       }
       else if (nroChavesPai < MIN_CHAVES) {
         return tratarUnderflow(btreeindex, header, rrnPai);
@@ -809,7 +850,18 @@ int tratarUnderflow(FILE *btreeindex, BTreeHeader *header, int rrnAtual) {
 
       if (rrnPai == header->noRaiz && nroChavesPai == 0) {
         header->noRaiz = rrnAtual;
-        escreverCabecalhoArvoreB(btreeindex, header);
+
+        BTreeNode *novaRaiz = criarNo();
+        lerNo(btreeindex, rrnAtual, novaRaiz);
+        if (!ehFolha(novaRaiz)) {
+            novaRaiz->tipoNo = 0; // Atualiza de intermediário (1) para raiz (0)
+            escreverNo(btreeindex, rrnAtual, novaRaiz);
+        }
+        liberaNo(&novaRaiz);
+
+        header->nroNos--;
+        liberarPaginaBTree(btreeindex, header, rrnPai);
+
       }
       else if (nroChavesPai < MIN_CHAVES) {
         return tratarUnderflow(btreeindex, header, rrnPai);
@@ -842,7 +894,9 @@ int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posC
     if (rrnAtual == header->noRaiz) {
       if (node->nroChaves == 0) {
         header->noRaiz = -1;
-        escreverCabecalhoArvoreB(btreeindex, header);
+
+        header->nroNos--;
+        liberarPaginaBTree(btreeindex, header, rrnAtual);
       }
       liberaNo(&node);
       return 1;

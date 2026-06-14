@@ -282,16 +282,10 @@ void insercao(char *binName, char *btreeName, int N) {
 
 void remocao(char *binName, char *btreeName, int N) {
   FILE *fileBin = fopen(binName, "rb+");
-  if (!fileBin) {
-    printf("Falha no processamento de dados\n");
-    return;
-  }
+  if (!fileBin) { printf("Falha no processamento do arquivo.\n"); return; }
 
   FILE *btreeindex = fopen(btreeName, "rb+");
-  if (!btreeindex) {
-    printf("Falha no processameto do arquivo.\n");
-    return;
-  }
+  if (!btreeindex) { printf("Falha no processamento do arquivo.\n"); return; }
 
   Cabecalho cabBin;
   lerCabecalho(fileBin, &cabBin);
@@ -301,8 +295,7 @@ void remocao(char *binName, char *btreeName, int N) {
 
   if (cabBin.status == '0' || cabBTree.status == '0') {
     printf("Arquivo inconsistente.\n");
-    fclose(fileBin);
-    fclose(btreeindex);
+    fclose(fileBin); fclose(btreeindex);
     return;
   }
 
@@ -311,63 +304,76 @@ void remocao(char *binName, char *btreeName, int N) {
   escreverCabecalho(fileBin, cabBin);
   escreverCabecalhoArvoreB(btreeindex, &cabBTree);
 
-  for (int i = 0; i < N; i++)
-  {
+  for (int i = 0; i < N; i++) {
     Busca filtro = inputFiltro();
 
-    if (filtro.codEstacao == -2){
-      continue;
+    if (filtro.codEstacao == -2) {
+      // === CASO: busca sequencial por outro campo ===
+      fseek(fileBin, TAM_CABECALHO, SEEK_SET);
+      Registro reg;
+      int rrnAtual = 0;
+
+      while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1) {
+        if (reg.removido == '1') {
+          fseek(fileBin, TAM_REGISTRO - 1, SEEK_CUR);
+          rrnAtual++;
+          continue;
+        }
+
+        lerRegistro(fileBin, &reg);
+      
+        long posicaoCorreta = ftell(fileBin);
+
+        if (comparaFiltro(filtro, reg)) {
+          apagarRegistro(fileBin, &reg, &cabBin, rrnAtual);
+
+          int foundRRN = -1, foundPos = -1;
+          int encontrou = buscaArvoreB(btreeindex, cabBTree.noRaiz,
+                                        reg.codEstacao, &foundRRN, &foundPos, NULL);
+          if (encontrou) {
+            removerArvoreB(btreeindex, &cabBTree, foundRRN, foundPos, reg.codEstacao);
+          }
+
+        fseek(fileBin, posicaoCorreta, SEEK_SET);
+
+        }
+        rrnAtual++;
+      }
+
+    } else {
+      // === CASO: busca pelo índice árvore-B por codEstacao ===
+      int foundRRN = -1, foundPos = -1, foundOffset = -1;
+
+      int encontrou = buscaArvoreB(btreeindex, cabBTree.noRaiz,
+                                    filtro.codEstacao, &foundRRN, &foundPos, &foundOffset);
+      if (!encontrou) continue;
+
+      Registro reg;
+      fseek(fileBin, foundOffset, SEEK_SET);
+      fread(&reg.removido, sizeof(char), 1, fileBin);
+
+      if (reg.removido == '1') continue;
+
+      lerRegistro(fileBin, &reg);
+
+      int rrnDados = (foundOffset - TAM_CABECALHO) / TAM_REGISTRO;
+      apagarRegistro(fileBin, &reg, &cabBin, rrnDados);
+
+      removerArvoreB(btreeindex, &cabBTree, foundRRN, foundPos, filtro.codEstacao);
     }
-
-    int foundRRN = -1;
-    int foundPos = -1;
-    int foundOffset = -1;
-
-    int encontrou = buscaArvoreB(
-      btreeindex,
-      cabBTree.noRaiz,
-      filtro.codEstacao,
-      &foundRRN,
-      &foundPos,
-      &foundOffset
-    );
-
-    if (!encontrou) {
-      continue;
-    }
-
-    Registro reg;
-    fseek(fileBin, foundOffset, SEEK_SET);
-    fread(&reg.removido, sizeof(char), 1, fileBin);
-
-    if (reg.removido == '1') {
-      continue;
-    }
-
-    lerRegistro(fileBin, &reg);
-
-    int rrnDados = (foundOffset - TAM_CABECALHO) / TAM_REGISTRO;
-    apagarRegistro(fileBin, &reg, &cabBin, rrnDados);
-
-    // Remove também a chave da árvore-B
-    removerArvoreB(
-      btreeindex,
-      &cabBTree,
-      foundRRN,
-      foundPos,
-      filtro.codEstacao
-    );
   }
+
+  contarEstacoesEPares(fileBin, &cabBin);
 
   cabBin.status = '1';
   cabBTree.status = '1';
-
   escreverCabecalho(fileBin, cabBin);
   escreverCabecalhoArvoreB(btreeindex, &cabBTree);
-  
+
   fclose(fileBin);
   fclose(btreeindex);
 
+  
   BinarioNaTela(binName);
   BinarioNaTela(btreeName);
 }
