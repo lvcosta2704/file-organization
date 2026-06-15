@@ -405,7 +405,7 @@ void contarEstacoesEPares(FILE *fileBin, Cabecalho *cab) {
     lerRegistro(fileBin, &reg);
 
     // --- LOGICA DE CONTAGEM ---
-    // Checa se a estação já foi vista pelo NOME (regra do PDF)
+    // Checa se a estação já foi vista pelo NOME 
     int estacaoRepetida = 0;
     for (int i = 0; i < cab->nroEstacoes; i++) {
       if (strcmp(nomesVistos[i], reg.nomeEstacao) == 0) {

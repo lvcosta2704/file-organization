@@ -23,7 +23,7 @@ void criarArvoreB(char *binName, char *btreeName) {
     return;
   }
 
-  // Lê o cabecalho do arquivo de dados e verifica se está consistente
+  // Le o cabecalho do arquivo de dados e verifica se esta consistente
   Cabecalho cabBin;
 
   lerCabecalho(fileBin, &cabBin);
@@ -44,13 +44,13 @@ void criarArvoreB(char *binName, char *btreeName) {
 
   escreverCabecalhoArvoreB(btreeindex, &cabBTree);
    
-  // 1. Lê o registro a verifica se está marcado como logicamente removido
-  fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Garante que a referência para o arquivo de dados está logo após o cabecalho
+  // 1. Le o registro a verifica se esta marcado como logicamente removido
+  fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Garante que a referencia para o arquivo de dados esta logo após o cabecalho
   
   Registro reg;
 
   // Passa por cada registro de dados sequencialmente
-  // verificando se ele está removido a principio
+  // verificando se ele esta removido a principio
   while(fread(&reg.removido, sizeof(char), 1, fileBin) == 1) {
     // Se estiver removido, pula para o próximo
     if(reg.removido == '1') {
@@ -109,7 +109,7 @@ void busca(char *binName, char *btreeName, int N) {
     return;
   }
 
-  // Lê o cabecalho do arquivo binario e verifica se está consistente
+  // Le o cabecalho do arquivo binario e verifica se esta consistente
   Cabecalho cabBin;
 
   lerCabecalho(fileBin, &cabBin);
@@ -119,7 +119,7 @@ void busca(char *binName, char *btreeName, int N) {
     return;
   }
 
-  // Lê o cabecalho do arquivo de indice Arvore-B e verifica se está consistente
+  // Le o cabecalho do arquivo de indice Arvore-B e verifica se esta consistente
   BTreeHeader cabBTree;
 
   lerCabecalhoArvoreB(btreeindex, &cabBTree);
@@ -155,7 +155,7 @@ void busca(char *binName, char *btreeName, int N) {
       // Posiciona a referencia para o arquivo de dados no registro especificado
       fseek(fileBin, OFFSET, SEEK_SET);
 
-      // Verifica se o registro está marcado como logicamente removido
+      // Verifica se o registro esta marcado como logicamente removido
       fread(&reg.removido, sizeof(char), 1, fileBin);
       if(reg.removido == '1') {
         printf("Registro inexistente.\n\n"); // Se estiver, nao existe o registro
@@ -206,13 +206,13 @@ void busca(char *binName, char *btreeName, int N) {
       }
     }
     else { // Se nao, realiza a busca usando somente arquivo de dados (Igual à funcionalidade 3)
-      fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Coloca a referência para o arquivo no primeiro registro de dados
+      fseek(fileBin, TAM_CABECALHO, SEEK_SET); // Coloca a referencia para o arquivo no primeiro registro de dados
 
       int encontrouAlgum = 0;
       Registro reg;
 
       // Passa por cada registro de dados sequencialmente
-      // verificando se ele está removido a principio
+      // verificando se ele esta removido a principio
       while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1){
           // Se estiver removido pula para o proximo
           if (reg.removido == '1') {
@@ -220,8 +220,8 @@ void busca(char *binName, char *btreeName, int N) {
               continue;
           }
           // --- LEITURA DOS REGISTROS ---
-          // Lê o restante do registro para comparar
-          // Lê o registro com os freads e tambem pula o lixo do registro no final
+          // Le o restante do registro para comparar
+          // Le o registro com os freads e tambem pula o lixo do registro no final
           
           lerRegistro(fileBin, &reg);
 
@@ -279,24 +279,28 @@ void busca(char *binName, char *btreeName, int N) {
 }
 
 void insercao(char *binName, char *btreeName, int N) {
+  // Abre o arquivo de registros no modo leitura/escrita e verifica se ocorreu bem
   FILE *fileBin = fopen(binName, "rb+");
   if (!fileBin) {
     printf("Falha no processamento de dados\n");
     return;
   }
 
+  // Abre o arquivo de indice Arvore-B no modo leitura/escrita e verifica se ocorreu bem
   FILE *btreeindex = fopen(btreeName, "rb+");
   if (!btreeindex) {
     printf("Falha no processamento do arquivo.\n");
     return;
   }
 
+  // Le os cabeçalhos dos arquivos para a memória RAM
   Cabecalho cabBin;
   lerCabecalho(fileBin, &cabBin);
 
   BTreeHeader cabBTree;
   lerCabecalhoArvoreB(btreeindex, &cabBTree);
 
+  // Verifica se ambos os arquivos estão consistentes
   if (cabBin.status == '0' || cabBTree.status == '0') {
     printf("Arquivo inconsistente.\n");
     fclose(fileBin);
@@ -304,7 +308,7 @@ void insercao(char *binName, char *btreeName, int N) {
     return;
   }
 
-  // Marca os arquivos como inconsistentes
+  // Marca os arquivos como inconsistentes durante o processo de inserção
   cabBin.status = '0';
   cabBTree.status = '0';
   escreverCabecalho(fileBin, cabBin);
@@ -312,17 +316,19 @@ void insercao(char *binName, char *btreeName, int N) {
   
   // Realiza N insercoes
   for (int i = 0; i < N; i++) {
-    // Pede ao usuário o registro a ser adicionado
+    // Pede ao usuario o registro a ser adicionado
     Registro reg = inputRegistro();
     int chave = reg.codEstacao; // salva a chave
 
-    // 1. Calcula onde esse registro deveria ficar, sem escrever no disco
+    // 1. Calcula onde esse registro deveria ficar no arquivo de dados, sem escrever no disco
     int RRN;
     int offset;
 
+    // Se a pilha de removidos não estiver vazia, reaproveita o espaco
     if(cabBin.topo != -1) {
       RRN = cabBin.topo;
     } 
+    // Caso contrario, insere no final do arquivo (expande o arquivo)
     else { 
       RRN = cabBin.proxRRN;
     }
@@ -350,102 +356,123 @@ void insercao(char *binName, char *btreeName, int N) {
 
     // imprimeNo(*node);
 
-    // Se a chave que estamos tentando inserir já existe, nao insere.
+    // Se a chave que estamos tentando inserir ja existe, nao insere.
     if(status == ERRO) {
       continue;
     }
 
-    // 3. Atualiza o arquivo de dados
-    if(cabBin.topo != -1) { // Caso o haja algum registro logicamente removido
-        // Inserimos no RRN correspondente ao topo da pilha
-        // Coloca a próxima referencia da lista no topo da pilha
+    // 3. Atualiza o arquivo de dados fisicamente
+    if(cabBin.topo != -1) { // Caso haja algum registro logicamente removido
+        // Insere no RRN correspondente ao topo da pilha
+        // Coloca a próxima referencia da lista no topo da pilha para atualizar a encadeada
         fseek(fileBin, offset + 1, SEEK_SET);
         fread(&cabBin.topo, sizeof(int), 1, fileBin);
 
-        // Vai pro RRN do antigo topo da pilha e escreve o registro
+        // Vai pro RRN do antigo topo da pilha e escreve o registro novo por cima
         fseek(fileBin, offset, SEEK_SET);
         escreverRegistro(fileBin, reg);
     }
-    else { // Caso contrário
-        // Inserimos no próximo RRN (fim do arquivo)
+    else { // Caso contrario (inserção no final do arquivo)
         // Vai pro final do arquivo e escreve o registro
         fseek(fileBin, offset, SEEK_SET);
         escreverRegistro(fileBin, reg);
 
-        // Atualiza o proximo RRN
+        // Atualiza o proximo RRN do cabeçalho, arquivo cresceu
         cabBin.proxRRN++;
     }
   }
 
+  // Recalcula o número real de estacoes e pares para atualizar o cabeçalho
   contarEstacoesEPares(fileBin, &cabBin);
 
-  // Marca o arquivo como consistente novamente
+  // Marca o arquivo como consistente novamente e salva as alteracoes
   cabBin.status = '1';
   cabBTree.status = '1';
   escreverCabecalho(fileBin, cabBin);
   escreverCabecalhoArvoreB(btreeindex, &cabBTree);
 
+  // Fecha os arquivos
   fclose(fileBin);
   fclose(btreeindex);
  
+  // Exibe os arquivos binarios para avaliação no testador automatico
   BinarioNaTela(binName);
   BinarioNaTela(btreeName);
 }
 
 void remocao(char *binName, char *btreeName, int N) {
+  // Abre o arquivo de registros no modo leitura/escrita e verifica se ocorreu bem
   FILE *fileBin = fopen(binName, "rb+");
   if (!fileBin) { printf("Falha no processamento do arquivo.\n"); return; }
 
+  // Abre o arquivo de indice ArvoreB no modo leitura/escrita e verifica se ocorreu bem
   FILE *btreeindex = fopen(btreeName, "rb+");
   if (!btreeindex) { printf("Falha no processamento do arquivo.\n"); return; }
 
+  // Le os cabeçalhos dos arquivos para a memória RAM
   Cabecalho cabBin;
   lerCabecalho(fileBin, &cabBin);
 
   BTreeHeader cabBTree;
   lerCabecalhoArvoreB(btreeindex, &cabBTree);
 
+  // Verifica se ambos os arquivos estão consistentes
   if (cabBin.status == '0' || cabBTree.status == '0') {
     printf("Arquivo inconsistente.\n");
     fclose(fileBin); fclose(btreeindex);
     return;
   }
 
+  // Marca os arquivos como inconsistentes durante a operação de remoção
   cabBin.status = '0';
   cabBTree.status = '0';
   escreverCabecalho(fileBin, cabBin);
   escreverCabecalhoArvoreB(btreeindex, &cabBTree);
 
+  // Realiza N operacoes de remoção
   for (int i = 0; i < N; i++) {
+    // Cria um filtro com os campos fornecidos pelo usuario
     Busca filtro = inputFiltro();
 
     if (filtro.codEstacao == -2) {
-      // === CASO: busca sequencial por outro campo ===
+      // CASO: busca sequencial por outro campo (quando não é fornecida a chave primaria)
+      
+      // Coloca a referencia para o arquivo no primeiro registro de dados (pulando o cabeçalho)
       fseek(fileBin, TAM_CABECALHO, SEEK_SET);
       Registro reg;
       int rrnAtual = 0;
 
+      // Passa por cada registro verificando seu status de remoção
       while (fread(&reg.removido, sizeof(char), 1, fileBin) == 1) {
+        // Se ja estiver logicamente removido, pula o restante do registro e avança o RRN
         if (reg.removido == '1') {
           fseek(fileBin, TAM_REGISTRO - 1, SEEK_CUR);
           rrnAtual++;
           continue;
         }
 
+        // Le o conteúdo do registro para a memória para fazer a verificação
         lerRegistro(fileBin, &reg);
       
+        // Salva a posição correta do ponteiro de leitura do arquivo
+        // pois a remoção ira mover o ponteiro internamente
         long posicaoCorreta = ftell(fileBin);
 
+        // Se o registro lido coincidir com o filtro de busca fornecido
         if (comparaFiltro(filtro, reg)) {
+          // Apaga logicamente o registro do arquivo de dados (empilhando no topo dos removidos)
           apagarRegistro(fileBin, &reg, &cabBin, rrnAtual);
 
+          // Procura a chave correspondente na Arvore-B para remove-la também
           int foundRRN = -1, foundPos = -1;
           int encontrou = buscaArvoreB(btreeindex, cabBTree.noRaiz,
                                         reg.codEstacao, &foundRRN, &foundPos, NULL);
+          // Se a chave for encontrada na Arvore-B, realiza a remoção estrutural
           if (encontrou) {
             removerArvoreB(btreeindex, &cabBTree, foundRRN, foundPos, reg.codEstacao);
           }
 
+        // Restaura o ponteiro do arquivo para a posição exata após a leitura do registro atual
         fseek(fileBin, posicaoCorreta, SEEK_SET);
 
         }
@@ -453,39 +480,51 @@ void remocao(char *binName, char *btreeName, int N) {
       }
 
     } else {
-      // === CASO: busca pelo índice árvore-B por codEstacao ===
+      // CASO: busca pelo índice Arvore-B usando a chave primaria (codEstacao)
       int foundRRN = -1, foundPos = -1, foundOffset = -1;
 
+      // Busca diretamente pelo codEstacao na Arvore-B
       int encontrou = buscaArvoreB(btreeindex, cabBTree.noRaiz,
                                     filtro.codEstacao, &foundRRN, &foundPos, &foundOffset);
+      // Se a chave não existir na Arvore, ignora a remoção e vai para a próxima
       if (!encontrou) continue;
 
       Registro reg;
+      // Pula direto para o byte (offset) exato no arquivo de dados retornado pela busca no índice
       fseek(fileBin, foundOffset, SEEK_SET);
       fread(&reg.removido, sizeof(char), 1, fileBin);
 
+      // Verificação de segurança: se o registro ja estiver marcado como removido, ignora
       if (reg.removido == '1') continue;
 
+      // Le o registro alvo para a memória
       lerRegistro(fileBin, &reg);
 
+      // Calcula o RRN com base no offset físico do arquivo
       int rrnDados = (foundOffset - TAM_CABECALHO) / TAM_REGISTRO;
+      
+      // Apaga logicamente o registro do arquivo de dados
       apagarRegistro(fileBin, &reg, &cabBin, rrnDados);
 
+      // Remove definitivamente a chave do índice Arvore-B
       removerArvoreB(btreeindex, &cabBTree, foundRRN, foundPos, filtro.codEstacao);
     }
   }
 
+  // Recalcula o número real de estacoes e pares (ignorando os recém-removidos) para atualizar o cabeçalho
   contarEstacoesEPares(fileBin, &cabBin);
 
+  // Marca ambos os arquivos como consistentes novamente após o término seguro das remocoes
   cabBin.status = '1';
   cabBTree.status = '1';
   escreverCabecalho(fileBin, cabBin);
   escreverCabecalhoArvoreB(btreeindex, &cabBTree);
 
+  // Fecha e salva as alteracoes em disco
   fclose(fileBin);
   fclose(btreeindex);
 
-  
+  // Exibe os arquivos binarios
   BinarioNaTela(binName);
   BinarioNaTela(btreeName);
 }
