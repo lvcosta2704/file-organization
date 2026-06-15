@@ -70,6 +70,7 @@ void criarArvoreB(char *binName, char *btreeName) {
     int PROMO_R_CHILD;
     int PROMO_KEY;
     int PROMO_OFFSET;
+
     insercaoArvoreB(btreeindex,
         &cabBTree,
         cabBTree.noRaiz,
@@ -286,7 +287,7 @@ void insercao(char *binName, char *btreeName, int N) {
 
   FILE *btreeindex = fopen(btreeName, "rb+");
   if (!btreeindex) {
-    printf("Falha no processameto do arquivo.\n");
+    printf("Falha no processamento do arquivo.\n");
     return;
   }
 
@@ -303,16 +304,92 @@ void insercao(char *binName, char *btreeName, int N) {
     return;
   }
 
+  // Marca os arquivos como inconsistentes
   cabBin.status = '0';
   cabBTree.status = '0';
   escreverCabecalho(fileBin, cabBin);
   escreverCabecalhoArvoreB(btreeindex, &cabBTree);
   
   // Realiza N insercoes
-  for(int i = 0; i < N; i++) {
-    // 1. Pede os campos de busca para o usuário
-    Busca filtro = inputFiltro();
+  for (int i = 0; i < N; i++) {
+    // Pede ao usuário o registro a ser adicionado
+    Registro reg = inputRegistro();
+    int chave = reg.codEstacao; // salva a chave
+
+    // 1. Calcula onde esse registro deveria ficar, sem escrever no disco
+    int RRN;
+    int offset;
+
+    if(cabBin.topo != -1) {
+      RRN = cabBin.topo;
+    } 
+    else { 
+      RRN = cabBin.proxRRN;
+    }
+    
+    offset = TAM_CABECALHO + (RRN * TAM_REGISTRO); // salva o offset
+
+    // 2. Insere no arquivo de indice Arvore-B
+    int PROMO_R_CHILD;
+    int PROMO_KEY;
+    int PROMO_OFFSET;
+
+    // printf("Inserindo codEstacao %d\n", chave);
+    
+    int status = insercaoArvoreB(btreeindex,
+        &cabBTree,
+        cabBTree.noRaiz,
+        chave,
+        offset,
+        &PROMO_R_CHILD,
+        &PROMO_KEY,
+        &PROMO_OFFSET);
+
+    // BTreeNode *node = criarNo();
+    // lerNo(btreeindex, 0, node);
+
+    // imprimeNo(*node);
+
+    // Se a chave que estamos tentando inserir já existe, nao insere.
+    if(status == ERRO) {
+      continue;
+    }
+
+    // 3. Atualiza o arquivo de dados
+    if(cabBin.topo != -1) { // Caso o haja algum registro logicamente removido
+        // Inserimos no RRN correspondente ao topo da pilha
+        // Coloca a próxima referencia da lista no topo da pilha
+        fseek(fileBin, offset + 1, SEEK_SET);
+        fread(&cabBin.topo, sizeof(int), 1, fileBin);
+
+        // Vai pro RRN do antigo topo da pilha e escreve o registro
+        fseek(fileBin, offset, SEEK_SET);
+        escreverRegistro(fileBin, reg);
+    }
+    else { // Caso contrário
+        // Inserimos no próximo RRN (fim do arquivo)
+        // Vai pro final do arquivo e escreve o registro
+        fseek(fileBin, offset, SEEK_SET);
+        escreverRegistro(fileBin, reg);
+
+        // Atualiza o proximo RRN
+        cabBin.proxRRN++;
+    }
   }
+
+  contarEstacoesEPares(fileBin, &cabBin);
+
+  // Marca o arquivo como consistente novamente
+  cabBin.status = '1';
+  cabBTree.status = '1';
+  escreverCabecalho(fileBin, cabBin);
+  escreverCabecalhoArvoreB(btreeindex, &cabBTree);
+
+  fclose(fileBin);
+  fclose(btreeindex);
+ 
+  BinarioNaTela(binName);
+  BinarioNaTela(btreeName);
 }
 
 void remocao(char *binName, char *btreeName, int N) {

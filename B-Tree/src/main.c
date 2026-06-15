@@ -1,3 +1,7 @@
+// NOME:                    NUSP:
+// Ryan Sulino Arrua        16900070
+// Lucas Vinicius da Costa  16885265
+
 #include <stdio.h>
 #include "query.h"
 
@@ -28,7 +32,7 @@ int main() {
       // Realiza n insercoes usando o arquivo de indice arvore B
       int n;
       scanf("%s %s %d", inputfile, btreeindex, &n);
-  //    insercao(inputfile, btreeindex, n);
+      insercao(inputfile, btreeindex, n);
       break;
     }
     case 10: {

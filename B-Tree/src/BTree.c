@@ -281,7 +281,7 @@ int buscaArvoreB(FILE *btreeindex, int RRN, int chave, int *FOUND_RRN, int *FOUN
 // ======== INSERCAO =========
 
 void inserirOrdenado(BTreeNode *node, int chave, int offset, int r_child) {
-    // Começamos do fim do nó
+    // Comecamos do fim do no
     int i = node->nroChaves - 1;
 
     // Desloca as chaves, offsets e ponteiros para a direita
@@ -301,7 +301,7 @@ void inserirOrdenado(BTreeNode *node, int chave, int offset, int r_child) {
     // O ponteiro do filho direito da nova chave vai para a posição i + 2
     node->ponteiroNo[i+2] = r_child;
 
-    // Incrementa o contador de chaves do nó
+    // Incrementa o numero de chaves do no
     node->nroChaves++;
 }
 
@@ -332,16 +332,16 @@ void split(BTreeNode *nodeAtual, int chaveInserida, int offsetInserido, int ptrI
     tempOffsets[pos + 1] = offsetInserido;
     tempPonteiros[pos + 2] = ptrInserido;
     
-    // 3. Encontra o ponto de divisão (meio) e define quem será promovido
+    // 3. Encontra o ponto de divisão e define quem será promovido
     int mid = (MAX_CHAVES + 1) / 2; 
     *chavePromovida = tempChaves[mid];
     *offsetPromovido = tempOffsets[mid];
     
-    // 4. Atualiza a quantidade de chaves de cada nó pós-divisão
+    // 4. Atualiza a quantidade de chaves de cada no pos-divisao
     nodeAtual->nroChaves = mid;
     novoNo->nroChaves = MAX_CHAVES - mid;
     
-    // 5. Devolve a primeira metade (elementos menores que o 'mid') para o nodeAtual
+    // 5. Devolve a primeira metade para o nodeAtual
     for (i = 0; i < mid; i++) {
         nodeAtual->indice[i].codEstacao = tempChaves[i];
         nodeAtual->indice[i].offset = tempOffsets[i];
@@ -349,14 +349,14 @@ void split(BTreeNode *nodeAtual, int chaveInserida, int offsetInserido, int ptrI
     }
     nodeAtual->ponteiroNo[mid] = tempPonteiros[mid];
     
-    // Limpa o restante das posições do nodeAtual que agora estão vazias
+    // Limpa o restante das posições do nodeAtual que agora estao vazias
     for (i = mid; i < MAX_CHAVES; i++) {
         nodeAtual->indice[i].codEstacao = -1;
         nodeAtual->indice[i].offset = -1;
         nodeAtual->ponteiroNo[i + 1] = -1;
     }
     
-    // 6. Envia a segunda metade (elementos maiores que o 'mid') para o novoNo
+    // 6. Envia a segunda metade para o novoNo
     for (i = mid + 1; i <= MAX_CHAVES; i++) {
         int novoIdx = i - (mid + 1);
         novoNo->indice[novoIdx].codEstacao = tempChaves[i];
@@ -378,6 +378,29 @@ void split(BTreeNode *nodeAtual, int chaveInserida, int offsetInserido, int ptrI
     novoNo->proximo = -1;
 }
 
+// Obtem o RRN da pagina usando reaproveitamento
+// de registros logicamente removidos
+int calcularRRN(FILE *btreeindex, BTreeHeader *header) {
+    // verifica se há algum valor na pilha
+    if (header->topo != -1) {
+        // Há um nó removido
+        int RRN = header->topo;
+        
+        // Lê o no removido e atualiza o topo da pilha
+        BTreeNode *noRemovido = criarNo();
+        lerNo(btreeindex, RRN, noRemovido);        
+
+        header->topo = noRemovido->proximo; // <- atualiza o topo da pilha
+        
+        liberaNo(&noRemovido);
+        return RRN;
+    } else {
+        // Não há pagina removida, pega o proxRRN
+        int RRN = header->proxRRN;
+        (header->proxRRN)++;
+        return RRN;
+    }
+}
 
 int insercaoArvoreB(FILE *btreeindex, BTreeHeader *header, int RRNAtual, int chave, int offset, int *PROMO_R_CHILD, int *PROMO_KEY, int *PROMO_OFFSET) {  
   // Verifica se a arvore está vazia
@@ -385,7 +408,7 @@ int insercaoArvoreB(FILE *btreeindex, BTreeHeader *header, int RRNAtual, int cha
     // Se estiver, inicializa o primeiro nó raiz
     BTreeNode *novaRaiz = criarNo();
 
-    novaRaiz->tipoNo = 0; // 0 define o tipo: nó raiz
+    novaRaiz->tipoNo = -1; // nó folha = no raiz
     novaRaiz->indice[0].codEstacao = chave;
     novaRaiz->indice[0].offset = offset;
     novaRaiz->nroChaves = 1;
@@ -412,13 +435,15 @@ int insercaoArvoreB(FILE *btreeindex, BTreeHeader *header, int RRNAtual, int cha
     BTreeNode *node = criarNo();
     lerNo(btreeindex, RRNAtual, node);
 
+    // imprimeNo(*node);
+
     int pos;
     int array[MAX_CHAVES];
     arrayDeChaves(array, node); 
                                 
-    // Busca binária até o número exato de chaves presentes
+    // Busca binária no array de chaves
     if(binarySearch(chave, array, 0, node->nroChaves, &pos) != -1) {
-      printf("Nao é possivel inserir chaves duplicadas.\n");
+      // printf("Nao é possivel inserir chaves duplicadas.\n");
       liberaNo(&node);
       return ERRO;
     }
@@ -442,15 +467,23 @@ int insercaoArvoreB(FILE *btreeindex, BTreeHeader *header, int RRNAtual, int cha
       
       split(node, *PROMO_KEY, *PROMO_OFFSET, *PROMO_R_CHILD, novoNo, &novaChavePromovida, &novoOffsetPromovido);
 
-      int novoPonteiroPromovido = header->proxRRN;
-      (header->proxRRN)++;
+      int novoPonteiroPromovido = calcularRRN(btreeindex, header);
       (header->nroNos)++;
 
-      // verifica se o nó que sofreu split é a raiz do sistema
+      // Se o nó que sofreu split é a raiz do sistema
       if (RRNAtual == header->noRaiz) {        
         // A raiz antiga não é mais raiz
         // Reclassifica os nós do split:
-        int novoTipo = (node->ponteiroNo[0] == -1) ? -1 : 1;
+        int novoTipo;
+
+        // Se o no e folha
+        if (node->ponteiroNo[0] == -1) {
+            novoTipo = -1; // novo no é folha
+        } 
+        else {
+            novoTipo = 1; // novo no é interno 
+        }
+
         node->tipoNo = novoTipo;
         novoNo->tipoNo = novoTipo;
 
@@ -460,18 +493,18 @@ int insercaoArvoreB(FILE *btreeindex, BTreeHeader *header, int RRNAtual, int cha
 
         // Cria a nova raiz
         BTreeNode *novaRaiz = criarNo();
-        novaRaiz->tipoNo = 0; // 0 define o tipo: nó raiz
+        novaRaiz->tipoNo = 0; // nó raiz
         novaRaiz->nroChaves = 1;
         novaRaiz->indice[0].codEstacao = novaChavePromovida;
         novaRaiz->indice[0].offset = novoOffsetPromovido;
         
+        // Ajusta os ponteiros
         novaRaiz->ponteiroNo[0] = RRNAtual;
         novaRaiz->ponteiroNo[1] = novoPonteiroPromovido;
 
         // Atualiza os campos do cabecalho
-        int rrnNovaRaiz = header->proxRRN;
+        int rrnNovaRaiz = calcularRRN(btreeindex, header);
         header->noRaiz = rrnNovaRaiz;
-        (header->proxRRN)++;
         (header->nroNos)++;
 
         escreverNo(btreeindex, rrnNovaRaiz, novaRaiz);

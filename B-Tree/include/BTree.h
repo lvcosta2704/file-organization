@@ -57,6 +57,7 @@ int removerArvoreB(FILE *btreeindex, BTreeHeader *header, int rrnAtual, int posC
 
 void inserirOrdenado(BTreeNode *node, int chave, int offset, int r_child);
 void split(BTreeNode *nodeAtual, int chaveInserida, int offsetInserido, int ptrInserido, BTreeNode *novoNo, int *chavePromovida, int *offsetPromovido);
+int calcularRRN(FILE *btreeindex, BTreeHeader *header);
 
 // -------- FUNCOES AUXILIARES DA REMOCAO -------
 
