@@ -699,13 +699,30 @@ void singleLoopJoin(char *binName1, char *nomeCampo1, char *binName2, char *nome
     }
   }
 }
+
 // Funcao auxiliar que é usada no qsort() da funcao orderBy()
-int comparaReg(const void *r1, const void *r2) {
+int compara_codProxEstacao(const void *r1, const void *r2) {
   Registro *regA = (Registro *)r1;
   Registro *regB = (Registro *)r2;
 
   int valorA = regA->codProxEstacao;
   int valorB = regB->codProxEstacao;
+
+  if (valorA == -1 && valorB != -1) return 1;
+  if (valorB == -1 && valorA != -1) return -1;
+
+  if (valorA > valorB) return 1; // poe o valorA a direita do valorB 
+  if (valorA < valorB) return -1; // poe o valorA a esquerda do valorB
+
+  return 0;
+}
+
+int compara_codEstacao(const void *r1, const void *r2) {
+  Registro *regA = (Registro *)r1;
+  Registro *regB = (Registro *)r2;
+
+  int valorA = regA->codEstacao;
+  int valorB = regB->codEstacao;
 
   if (valorA == -1 && valorB != -1) return 1;
   if (valorB == -1 && valorA != -1) return -1;
@@ -758,7 +775,12 @@ void orderBy(char *binEntrada, char *campoOrd, char *binSaida) {
     qtdValidos++;
   }
  
-  qsort(vetor, qtdValidos, sizeof(Registro), comparaReg);
+  if(strcmp(campoOrd, "codEstacao") == 0) {
+    qsort(vetor, qtdValidos, sizeof(Registro), compara_codEstacao);
+  }
+  else if(strcmp(campoOrd, "codProxEstacao") == 0) {
+    qsort(vetor, qtdValidos, sizeof(Registro), compara_codProxEstacao);
+  }
 
   Cabecalho cabSaida;
 
@@ -785,7 +807,44 @@ void orderBy(char *binEntrada, char *campoOrd, char *binSaida) {
   free(vetor);
   fclose(fileBinEntrada);
   fclose(fileBinSaida);
-
-  BinarioNaTela(binSaida);
 }
 
+void sortMergeJoin(char *binName1, char *campoOrd1, char *binName2, char *campoOrd2) {
+  // Abre os arquivos e verifica se ocorreu bem
+  FILE *fileBin1 = fopen(binName1, "rb+");
+  FILE *fileBin2 = fopen(binName2, "rb+");
+
+  if (!fileBin1 || !fileBin2) {
+    printf("Falha no processamento do arquivo.\n");
+    if (fileBin1) fclose(fileBin1);
+    if (fileBin2) fclose(fileBin2);
+    return;
+  }
+
+  // Lê os cabecalhos e verifica se os arquivos estao consistentes
+  Cabecalho cabBin1;
+  lerCabecalho(fileBin1, &cabBin1);
+
+  Cabecalho cabBin2;
+  lerCabecalho(fileBin2, &cabBin2);
+
+  if (cabBin1.status == '0' || cabBin2.status == '0') {
+    printf("Falha no processamento do arquivo.\n");
+    fclose(fileBin1);
+    fclose(fileBin2);
+    return;
+  }
+
+  // Ordena o arquivo1 usando codEstacao
+  orderBy(binName1, "codEstacao", "tmp1.bin");
+
+  // Ordena o arquivo2 usando o codProxEstacao
+  orderBy(binName2, "codProxEstacao", "tmp2.bin");
+
+  // Realiza o merge
+  nestedLoopJoin("tmp1.bin", campoOrd1, "tmp2.bin", campoOrd2);
+
+  // Fecha os arquivos
+  fclose(fileBin1);
+  fclose(fileBin2);
+}

@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include "query.h"
+#include "fornecidas.h"
 
 // -------- FLUXO PRINCIPAL DO PROGRAMA ---------
 int main() {
@@ -31,6 +32,12 @@ int main() {
     case 13: {
       scanf("%s %s %s", inputfile1, nomeCampo1, outputfile);
       orderBy(inputfile1, nomeCampo1, outputfile);
+      BinarioNaTela(outputfile);
+      break;
+    }
+    case 14: {
+      scanf("%s %s %s %s", inputfile1, nomeCampo1, inputfile2, nomeCampo2);
+      sortMergeJoin(inputfile1, nomeCampo1, inputfile2, nomeCampo2);
       break;
     }
     default:
