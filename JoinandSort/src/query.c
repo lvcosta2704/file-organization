@@ -529,25 +529,28 @@ void remocao(char *binName, char *btreeName, int N) {
   BinarioNaTela(btreeName);
 }
 
+// Realiza a junção entre dois arquivos usando a técnica de força bruta (nested loop join)
 void nestedLoopJoin(char *binName1, char *nomeCampo1, char *binName2, char *nomeCampo2) {
- // printf("DEBUG: ANTES DO FOPEN\n");
+  
+  // Processo de abertura de arquivos em modo de leitura/escrita
   FILE *fileBin1 = fopen(binName1, "rb+");
   FILE *fileBin2 = fopen(binName2, "rb+");
-  //printf("DEBUG: DEPOIS DO FOPEN\n");
 
+  // Verifica se a abertura de todos os arquivos foi bem-sucedida
   if (!fileBin1 || !fileBin2) {
     printf("Falha no processamento do arquivo.\n");
     if (fileBin1) fclose(fileBin1);
     if (fileBin2) fclose(fileBin2);
     return;
   }
-  //printf("DEBUG: DEPOIS DO PRIMEIRO CHECK IF\n");
 
   Cabecalho cab1, cab2;
 
+  // Carrega os cabeçalhos dos arquivos para a memória principal
   lerCabecalho(fileBin1, &cab1);
   lerCabecalho(fileBin2, &cab2);
-  //printf("DEBUG: ANTES DO CHECK CABEÇALHO\n");
+  
+  // Verificação de consistência dos arquivos
   if (cab1.status == '0' || cab2.status == '0') {
     printf("Falha no processamento do arquivo.\n");
     fclose(fileBin1);
@@ -558,22 +561,30 @@ void nestedLoopJoin(char *binName1, char *nomeCampo1, char *binName2, char *nome
   int encontrou_algum = 0;
   Registro reg1, reg2;
 
+  // Posiciona o ponteiro de leitura no primeiro registro do arquivo 1
   fseek(fileBin1, TAM_CABECALHO, SEEK_SET);
 
+  // Laço externo: percorre sequencialmente o arquivo 1
   while (fread(&reg1.removido, sizeof(char), 1, fileBin1) == 1) {
+    // Pula registros logicamente removidos
     if (reg1.removido == '1') {
       fseek(fileBin1, TAM_REGISTRO - 1, SEEK_CUR);
       continue;
     }
     lerRegistro(fileBin1, &reg1);
 
+    // Se o campo de junção for nulo, ignora este registro
     if (reg1.codProxEstacao == -1) {
       continue;
     }
 
+    // Posiciona o ponteiro de leitura no primeiro registro do arquivo 2
+    // Esta operação é repetida a cada iteração do arquivo 1 (força bruta)
     fseek(fileBin2, TAM_CABECALHO, SEEK_SET);
 
+    // Laço interno: percorre sequencialmente o arquivo 2 em busca da correspondência
     while (fread(&reg2.removido, sizeof(char), 1, fileBin2) == 1) {
+      // Pula registros logicamente removidos
       if (reg2.removido == '1') {
         fseek(fileBin2, TAM_REGISTRO - 1, SEEK_CUR);
         continue;
@@ -581,53 +592,53 @@ void nestedLoopJoin(char *binName1, char *nomeCampo1, char *binName2, char *nome
 
       lerRegistro(fileBin2, &reg2);
 
+      // Verifica a condição de junção
       if (reg1.codProxEstacao == reg2.codEstacao) {
 
-        // 1. codEstacao (arquivo 1)
+        // Impressão formatada dos campos requisitados
         if (reg1.codEstacao != -1) printf("%d ", reg1.codEstacao); else printf("NULO ");
-        
-        // 2. nomeEstacao (arquivo 1)
         if (reg1.tamNomeEstacao > 0) printf("%s ", reg1.nomeEstacao); else printf("NULO ");
-        
-        // 3. nomeLinha (arquivo 1)
         if (reg1.tamNomeLinha > 0) printf("%s ", reg1.nomeLinha); else printf("NULO ");
-        
-        // 4. codProxEstacao (arquivo 1)
         if (reg1.codProxEstacao != -1) printf("%d ", reg1.codProxEstacao); else printf("NULO ");
 
-        // Vindo pela Junção
-        // 5. nomeProxEstacao (que é o nomeEstacao do arquivo 2) -> Último sem espaço
+        // Exibe o nome da estação destino obtido do arquivo 2
         if (reg2.tamNomeEstacao > 0) printf("%s\n", reg2.nomeEstacao); else printf("NULO\n");
 
         encontrou_algum = 1;
 
+        // Como a chave do arquivo 2 é primária, encerramos a busca interna após encontrar o registro
         break;
       }
     }
-
   }
 
+  // Mensagem caso nenhum registro satisfaça a condição de junção
   if (encontrou_algum == 0) {
     printf("Registro inexistente.\n");
   }
 
+  // Liberação de recursos
   fclose(fileBin1);
   fclose(fileBin2);
 
   return;
 }
 
+// Realiza a junção entre dois arquivos usando a técnica de junção de loop único com Árvore-B
 void singleLoopJoin(char *binName1, char *nomeCampo1, char *binName2, char *nomeCampo2, char *btreeName) {
 
+  // Validação das condições de junção conforme especificado no trabalho
   if (strcmp(nomeCampo1, "codProxEstacao") != 0 || strcmp(nomeCampo2, "codEstacao") != 0) {
     printf("Falha no processamento do arquivo.\n");
     return;
   }
   
+  // Processo de abertura de arquivos em modo de leitura/escrita
   FILE *fileBin1 = fopen(binName1, "rb+");
   FILE *fileBin2 = fopen(binName2, "rb+");
   FILE *btreeindex = fopen(btreeName, "rb+");
 
+  // Verifica se a abertura de todos os arquivos foi bem-sucedida
   if (!fileBin1 || !fileBin2 || !btreeindex) {
     printf("Falha no processamento do arquivo.\n");
     if (fileBin1) fclose(fileBin1);
@@ -636,6 +647,7 @@ void singleLoopJoin(char *binName1, char *nomeCampo1, char *binName2, char *nome
     return; 
   }
 
+  // Leitura dos cabeçalhos dos arquivos de dados e da Árvore-B
   Cabecalho cab1, cab2;
   BTreeHeader cabBTree;
 
@@ -643,6 +655,7 @@ void singleLoopJoin(char *binName1, char *nomeCampo1, char *binName2, char *nome
   lerCabecalho(fileBin1, &cab1);
   lerCabecalho(fileBin2, &cab2);
 
+  // Verificação de consistência dos arquivos de dados
   if (cab1.status == '0' || cab2.status == '0') {
     printf("Falha no processamento do arquivo.\n");
     fclose(fileBin1);
@@ -650,57 +663,77 @@ void singleLoopJoin(char *binName1, char *nomeCampo1, char *binName2, char *nome
     return;
   }
 
+  // Verificação de consistência do arquivo de índice
   if (cabBTree.status == '0') {
     printf("Falha no processamento do arquivo.\n");
     fclose(btreeindex);
     return;
   }
 
-
-
   int encontrou_algum = 0;
   Registro reg1, reg2;
 
+  // Posiciona o ponteiro de leitura no primeiro registro do arquivo principal
   fseek(fileBin1, TAM_CABECALHO, SEEK_SET);
 
+  // Percorre sequencialmente apenas o arquivo 1
   while (fread(&reg1.removido, sizeof(char), 1, fileBin1) == 1) {
+    // Pula registros logicamente removidos
     if (reg1.removido == '1') {
       fseek(fileBin1, TAM_REGISTRO - 1, SEEK_CUR);
       continue;
     }
     lerRegistro(fileBin1, &reg1);
 
+    // Se o campo de junção for nulo, não há correspondência possível no arquivo 2
     if (reg1.codProxEstacao == -1) {
       continue;
     }
 
-    fseek(fileBin2, TAM_CABECALHO, SEEK_SET);
-
+    // Busca pela chave no índice da Árvore-B
+    // Em vez de varrer o arquivo 2, buscamos diretamente o deslocamento (offset) da chave no índice
     int foundRRN = -1, foundPos = -1, foundOffset = -1;
-
     int encontrou = buscaArvoreB(btreeindex, cabBTree.noRaiz, reg1.codProxEstacao, &foundRRN, &foundPos, &foundOffset);
 
+    // Se a chave existe no índice, acessamos o registro correspondente no arquivo 2
     if (encontrou) {
+      // Pula diretamente para o byte (offset) exato no arquivo 2
       fseek(fileBin2, foundOffset, SEEK_SET);
       fread(&reg2.removido, sizeof(char), 1, fileBin2);
 
+      // Verificação de segurança: ignora se o registro no destino estiver removido
       if (reg2.removido == '1') {
         continue;
       }
 
       lerRegistro(fileBin2, &reg2);
 
+      // Impressão formatada dos dados combinados
       if (reg1.codEstacao != -1) printf("%d ", reg1.codEstacao); else printf("NULO ");
       if (reg1.tamNomeEstacao > 0) printf("%s ", reg1.nomeEstacao); else printf("NULO ");
       if (reg1.tamNomeLinha > 0) printf("%s ", reg1.nomeLinha); else printf("NULO ");
       if (reg1.codProxEstacao != -1) printf("%d ", reg1.codProxEstacao); else printf("NULO ");
-      // Vindo pela Junção
+      
+      // Imprime o nome da estação destino obtido pelo arquivo 2
       if (reg2.tamNomeEstacao > 0) printf("%s\n", reg2.nomeEstacao); else printf("NULO\n");
+      
+      encontrou_algum = 1; // Registra que ao menos uma correspondência foi exibida
     }
   }
+
+  // Caso nenhum registro satisfaça a condição de junção
+  if (encontrou_algum == 0) {
+    printf("Registro inexistente.\n");
+  }
+
+  // Liberação de recursos
+  fclose(fileBin1);
+  fclose(fileBin2);
+  fclose(btreeindex);
 }
 
-// Funcao auxiliar que é usada no qsort() da funcao orderBy()
+// Função auxiliar utilizada pelo qsort para ordenar registros pelo campo codProxEstacao
+// Segue a regra de negócio onde valores nulos (-1) são posicionados ao final da ordenação
 int compara_codProxEstacao(const void *r1, const void *r2) {
   Registro *regA = (Registro *)r1;
   Registro *regB = (Registro *)r2;
@@ -708,15 +741,19 @@ int compara_codProxEstacao(const void *r1, const void *r2) {
   int valorA = regA->codProxEstacao;
   int valorB = regB->codProxEstacao;
 
+  // Tratamento de valores nulos: o valor nulo é considerado maior para ser enviado ao fim
   if (valorA == -1 && valorB != -1) return 1;
   if (valorB == -1 && valorA != -1) return -1;
 
-  if (valorA > valorB) return 1; // poe o valorA a direita do valorB 
-  if (valorA < valorB) return -1; // poe o valorA a esquerda do valorB
+  // Comparação numérica padrão para valores válidos
+  if (valorA > valorB) return 1; 
+  if (valorA < valorB) return -1;
 
   return 0;
 }
 
+// Função auxiliar utilizada pelo qsort para ordenar registros pelo campo codEstacao
+// Mantém a mesma lógica de posicionar valores nulos (-1) ao final da ordenação
 int compara_codEstacao(const void *r1, const void *r2) {
   Registro *regA = (Registro *)r1;
   Registro *regB = (Registro *)r2;
@@ -724,19 +761,25 @@ int compara_codEstacao(const void *r1, const void *r2) {
   int valorA = regA->codEstacao;
   int valorB = regB->codEstacao;
 
+  // Tratamento de valores nulos: o valor nulo é considerado maior para ser enviado ao fim
   if (valorA == -1 && valorB != -1) return 1;
   if (valorB == -1 && valorA != -1) return -1;
 
-  if (valorA > valorB) return 1; // poe o valorA a direita do valorB 
-  if (valorA < valorB) return -1; // poe o valorA a esquerda do valorB
+  // Comparação numérica padrão para valores válidos
+  if (valorA > valorB) return 1; 
+  if (valorA < valorB) return -1;
 
   return 0;
 }
 
+
+// Realiza a ordenação de um arquivo binário em memória principal e grava o resultado em um novo arquivo
 void orderBy(char *binEntrada, char *campoOrd, char *binSaida) {
+  // Processo de abertura de arquivos: leitura do original e criação do novo arquivo ordenado
   FILE *fileBinEntrada = fopen(binEntrada, "rb+");
   FILE *fileBinSaida = fopen(binSaida, "wb+");
 
+  // Verifica se a abertura dos arquivos foi bem-sucedida
   if (!fileBinEntrada || !fileBinSaida) {
     printf("Falha no processamento do arquivo.\n");
     if (fileBinEntrada) fclose(fileBinEntrada);
@@ -744,6 +787,7 @@ void orderBy(char *binEntrada, char *campoOrd, char *binSaida) {
     return;
   }
 
+  // Leitura do cabeçalho do arquivo original para verificação de consistência
   Cabecalho cabEntrada;
   lerCabecalho(fileBinEntrada, &cabEntrada);
 
@@ -754,16 +798,17 @@ void orderBy(char *binEntrada, char *campoOrd, char *binSaida) {
     return;
   }
 
+  // Determina o número máximo de registros para alocação do vetor na memória
   int regVal = cabEntrada.proxRRN;
-
-  
-  Registro *vetor = malloc(sizeof(Registro)*regVal);
+  Registro *vetor = malloc(sizeof(Registro) * regVal);
   int qtdValidos = 0;
 
+  // Percorre o arquivo de entrada para carregar apenas os registros ativos (não removidos)
   fseek(fileBinEntrada, TAM_CABECALHO, SEEK_SET);
   Registro reg1;
 
   while (fread(&reg1.removido, sizeof(char), 1, fileBinEntrada) == 1) {
+    // Ignora registros marcados como removidos
     if (reg1.removido == '1') {
       fseek(fileBinEntrada, TAM_REGISTRO - 1, SEEK_CUR);
       continue;
@@ -771,39 +816,44 @@ void orderBy(char *binEntrada, char *campoOrd, char *binSaida) {
 
     lerRegistro(fileBinEntrada, &reg1);
 
+    // Armazena o registro válido no vetor para posterior ordenação
     vetor[qtdValidos] = reg1;
     qtdValidos++;
   }
  
-  if(strcmp(campoOrd, "codEstacao") == 0) {
+  // Aplica o algoritmo de ordenação de acordo com o campo escolhido pelo usuário
+  if (strcmp(campoOrd, "codEstacao") == 0) {
     qsort(vetor, qtdValidos, sizeof(Registro), compara_codEstacao);
   }
-  else if(strcmp(campoOrd, "codProxEstacao") == 0) {
+  else if (strcmp(campoOrd, "codProxEstacao") == 0) {
     qsort(vetor, qtdValidos, sizeof(Registro), compara_codProxEstacao);
   }
 
+  // Inicializa o cabeçalho do novo arquivo ordenado
   Cabecalho cabSaida;
-
   cabSaida.nroEstacoes = 0;
   cabSaida.nroParesEstacao = 0;
   cabSaida.topo = -1;
   cabSaida.status = '0';
   cabSaida.proxRRN = 0;
 
+  // Registra o cabeçalho inicial no arquivo de saída
   escreverCabecalho(fileBinSaida, cabSaida);
 
-  for (int i = 0; i < qtdValidos; i++)
-  {
+  // Escreve os registros ordenados no novo arquivo binário
+  for (int i = 0; i < qtdValidos; i++) {
     escreverRegistro(fileBinSaida, vetor[i]);
   }
 
+  // Atualiza metadados do cabeçalho com a contagem real de registros e informações de estações
   cabSaida.proxRRN = qtdValidos;
-
   contarEstacoesEPares(fileBinSaida, &cabSaida);
 
+  // Finaliza a escrita marcando o arquivo como consistente
   cabSaida.status = '1';
   escreverCabecalho(fileBinSaida, cabSaida);
 
+  // Liberação de memória e encerramento do processamento de arquivos
   free(vetor);
   fclose(fileBinEntrada);
   fclose(fileBinSaida);
